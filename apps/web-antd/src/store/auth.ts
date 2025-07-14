@@ -10,7 +10,13 @@ import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 import { notification } from 'ant-design-vue';
 import { defineStore } from 'pinia';
 
-import { getAccessCodesApi, getUserInfoApi, loginApi, logoutApi } from '#/api';
+import {
+  getAccessCodesApi,
+  getUserInfoApi,
+  loginApi,
+  logoutApi,
+  registerApi,
+} from '#/api';
 import { $t } from '#/locales';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -19,6 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
   const router = useRouter();
 
   const loginLoading = ref(false);
+  const registerLoading = ref(false);
 
   /**
    * 异步处理登录操作
@@ -77,6 +84,36 @@ export const useAuthStore = defineStore('auth', () => {
     };
   }
 
+  /**
+   * 异步处理注册操作
+   * @param params 注册表单数据
+   * @returns 注册结果，若失败返回 undefined
+   */
+  async function authRegister(
+    params: Recordable<any>,
+    onSuccess?: () => Promise<void> | void,
+  ) {
+    let res; // 在函数作用域中定义 res
+    try {
+      registerLoading.value = true;
+      res = await registerApi(params); // 调用注册 API
+
+      notification.success({
+        message: '注册成功 🎉',
+        description: `欢迎你，${res?.username}！请使用账号登录平台。`,
+      });
+
+      // 注册成功后跳转到登录页或执行其他操作
+      await (onSuccess ? onSuccess() : router.push(LOGIN_PATH));
+    } finally {
+      registerLoading.value = false;
+    }
+
+    return {
+      res,
+    }; // 返回注册结果
+  }
+
   async function logout(redirect: boolean = true) {
     try {
       await logoutApi();
@@ -111,8 +148,10 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     $reset,
     authLogin,
+    authRegister,
     fetchUserInfo,
     loginLoading,
+    registerLoading,
     logout,
   };
 });

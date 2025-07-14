@@ -65,7 +65,12 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
     fulfilled: async (config) => {
       const accessStore = useAccessStore();
 
-      config.headers.Authorization = formatToken(accessStore.accessToken);
+      // 如果是注册接口，不添加 token
+      if (!config.url?.includes('/auth/register')) {
+        config.headers.Authorization = formatToken(accessStore.accessToken);
+      }
+
+      // config.headers.Authorization = formatToken(accessStore.accessToken);
       config.headers['Accept-Language'] = preferences.app.locale;
       return config;
     },
