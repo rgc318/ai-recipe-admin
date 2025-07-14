@@ -1,3 +1,5 @@
+import camelcaseKeys from 'camelcase-keys'; // 新增
+
 import { baseRequestClient, requestClient } from '#/api/request';
 
 export namespace AuthApi {
@@ -36,7 +38,8 @@ export namespace AuthApi {
  * 登录
  */
 export async function loginApi(data: AuthApi.LoginParams) {
-  return requestClient.post<AuthApi.LoginResult>('/auth/login', data);
+  const res = await requestClient.post('/auth/login', data);
+  return camelcaseKeys(res, { deep: true }) as AuthApi.LoginResult;
 }
 
 /**
@@ -44,7 +47,8 @@ export async function loginApi(data: AuthApi.LoginParams) {
  * @param data 用户注册表单数据
  */
 export async function registerApi(data: AuthApi.RegisterParams) {
-  return requestClient.post<AuthApi.RegisterResult>('/auth/register', data);
+  const res = await requestClient.post('/auth/register', data);
+  return camelcaseKeys(res, { deep: true }) as AuthApi.RegisterResult;
 }
 
 /**
@@ -60,7 +64,7 @@ export async function refreshTokenApi() {
  * 退出登录
  */
 export async function logoutApi() {
-  return baseRequestClient.post('/auth/logout', {
+  return requestClient.post('/auth/logout', {
     withCredentials: true,
   });
 }

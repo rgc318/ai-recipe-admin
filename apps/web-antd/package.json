@@ -42,6 +42,7 @@
     "@vben/utils": "workspace:*",
     "@vueuse/core": "catalog:",
     "ant-design-vue": "catalog:",
+    "camelcase-keys": "^9.1.3",
     "dayjs": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",

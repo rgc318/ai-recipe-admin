@@ -10,13 +10,7 @@ import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 import { notification } from 'ant-design-vue';
 import { defineStore } from 'pinia';
 
-import {
-  getAccessCodesApi,
-  getUserInfoApi,
-  loginApi,
-  logoutApi,
-  registerApi,
-} from '#/api';
+import { getUserInfoApi, loginApi, logoutApi, registerApi } from '#/api';
 import { $t } from '#/locales';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -40,22 +34,23 @@ export const useAuthStore = defineStore('auth', () => {
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
-      const { accessToken } = await loginApi(params);
-
+      const loginResult = await loginApi(params);
+      const accessToken = loginResult.accessToken;
       // 如果成功获取到 accessToken
       if (accessToken) {
         accessStore.setAccessToken(accessToken);
 
         // 获取用户信息并存储到 accessStore 中
-        const [fetchUserInfoResult, accessCodes] = await Promise.all([
-          fetchUserInfo(),
-          getAccessCodesApi(),
-        ]);
-
+        // const [fetchUserInfoResult, accessCodes] = await Promise.all([
+        //   fetchUserInfo(),
+        //   getAccessCodesApi(),
+        // ]);
+        //
+        const [fetchUserInfoResult] = await Promise.all([fetchUserInfo()]);// eslint-disable-line unicorn/no-single-promise-in-promise-methods
         userInfo = fetchUserInfoResult;
 
         userStore.setUserInfo(userInfo);
-        accessStore.setAccessCodes(accessCodes);
+        // accessStore.setAccessCodes(accessCodes);
 
         if (accessStore.loginExpired) {
           accessStore.setLoginExpired(false);
