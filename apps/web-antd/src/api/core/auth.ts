@@ -1,6 +1,6 @@
 import camelcaseKeys from 'camelcase-keys'; // 新增
 
-import { baseRequestClient, requestClient } from '#/api/request';
+import { requestClient } from '#/api/request';
 
 export namespace AuthApi {
   /** 注册参数 */
@@ -55,7 +55,7 @@ export async function registerApi(data: AuthApi.RegisterParams) {
  * 刷新accessToken
  */
 export async function refreshTokenApi() {
-  return baseRequestClient.post<AuthApi.RefreshTokenResult>('/auth/refresh', {
+  return requestClient.post<AuthApi.RefreshTokenResult>('/auth/refresh-token', {
     withCredentials: true,
   });
 }

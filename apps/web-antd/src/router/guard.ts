@@ -1,4 +1,4 @@
-import type { Router } from 'vue-router';
+import type { Router, RouteRecordRaw } from 'vue-router';
 
 import { LOGIN_PATH } from '@vben/constants';
 import { preferences } from '@vben/preferences';
@@ -90,18 +90,49 @@ function setupAccessGuard(router: Router) {
       return true;
     }
 
+    // 1. 先获取用户信息
+    const userInfo = userStore.userInfo || (await authStore.fetchUserInfo());
+
+    let accessibleMenus: RouteRecordRaw[] = [];
+    let accessibleRoutes: RouteRecordRaw[] = [];
+
+    // 2. 检查是否为超级管理员
+    if (userInfo.is_superuser) {
+      // 如果是超级管理员，直接赋予所有路由的访问权限
+      accessibleRoutes = accessRoutes;
+      // 同时，我们仍然需要调用 generateAccess 来生成菜单结构，
+      // 但我们告诉它不需要根据角色进行过滤（通过传递所有路由）。
+      // (这是一个安全的假设，generateAccess 会根据传入的 routes 生成菜单)
+      const menuResult = await generateAccess({
+        roles: [], // 传递空角色数组，因为我们不依赖它来过滤
+        router,
+        routes: accessibleRoutes, // 直接告诉它所有路由都可用
+      });
+      accessibleMenus = menuResult.accessibleMenus;
+    } else {
+      // 3. 如果不是超级管理员，则执行原来的角色权限逻辑
+      const userRoles = userInfo.roles ?? [];
+      const result = await generateAccess({
+        roles: userRoles,
+        router,
+        routes: accessRoutes,
+      });
+      accessibleMenus = result.accessibleMenus;
+      accessibleRoutes = result.accessibleRoutes;
+    }
+
     // 生成路由表
     // 当前登录用户拥有的角色标识列表
-    const userInfo = userStore.userInfo || (await authStore.fetchUserInfo());
-    const userRoles = userInfo.roles ?? [];
-
-    // 生成菜单和路由
-    const { accessibleMenus, accessibleRoutes } = await generateAccess({
-      roles: userRoles,
-      router,
-      // 则会在菜单中显示，但是访问会被重定向到403
-      routes: accessRoutes,
-    });
+    // const userInfo = userStore.userInfo || (await authStore.fetchUserInfo());
+    // const userRoles = userInfo.roles ?? [];
+    //
+    // // 生成菜单和路由
+    // const { accessibleMenus, accessibleRoutes } = await generateAccess({
+    //   roles: userRoles,
+    //   router,
+    //   // 则会在菜单中显示，但是访问会被重定向到403
+    //   routes: accessRoutes,
+    // });
 
     // 保存菜单信息和路由信息
     accessStore.setAccessMenus(accessibleMenus);

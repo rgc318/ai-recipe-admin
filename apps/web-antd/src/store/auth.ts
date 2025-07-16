@@ -46,7 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
         //   getAccessCodesApi(),
         // ]);
         //
-        const [fetchUserInfoResult] = await Promise.all([fetchUserInfo()]);// eslint-disable-line unicorn/no-single-promise-in-promise-methods
+        const [fetchUserInfoResult] = await Promise.all([fetchUserInfo()]); // eslint-disable-line unicorn/no-single-promise-in-promise-methods
         userInfo = fetchUserInfoResult;
 
         userStore.setUserInfo(userInfo);

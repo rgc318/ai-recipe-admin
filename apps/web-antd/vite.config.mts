@@ -1,5 +1,6 @@
 import { defineConfig } from '@vben/vite-config';
-
+// import vue from '@vitejs/plugin-vue';
+// import vueJsx from '@vitejs/plugin-vue-jsx'; // <--- 1. 在这里引入插件
 export default defineConfig(async () => {
   return {
     application: {},
@@ -21,6 +22,11 @@ export default defineConfig(async () => {
           },
         },
       },
+      // plugins: [
+      //   vue(),
+      //   vueJsx(), // <--- 2. 在这里添加插件
+      //   // ... 其他插件
+      // ],
     },
   };
 });

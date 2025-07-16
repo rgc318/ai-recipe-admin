@@ -10,5 +10,11 @@
     "title": "Dashboard",
     "analytics": "Analytics",
     "workspace": "Workspace"
+  },
+  "management": {
+    "title": "System Management",
+    "user": "User Management",
+    "role": "Role Management",
+    "permission": "Permission Management"
   }
 }
