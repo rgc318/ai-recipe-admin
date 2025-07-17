@@ -1,7 +1,5 @@
 <script lang="ts" setup>
 import { onActivated, onMounted, reactive, ref } from 'vue';
-
-// 1. 直接从 ant-design-vue 引入我们将要使用的所有原生组件
 import {
   Button,
   Card,
@@ -14,69 +12,68 @@ import {
   Table,
   Tag,
 } from 'ant-design-vue';
-
-import { getUserList } from '#/api/management/user'; // 假设您的表单在 UserDrawer.vue 中
-
-// 2. 引入我们自己的用户表单抽屉组件
+import { getUserList } from '#/api/management/user';
 import UserDrawer from './userDrawer.vue';
-
-// --- 假设的 API 和类型 ---
-// import { getUserList, deleteUser } from './api';
-// import type { UserInfo } from './types';
 
 // --- 状态管理 ---
 const loading = ref(false);
 const userDrawerRef = ref();
 const searchParams = reactive({
   username: '',
-  status: undefined,
+  status: undefined, // 注意：这个字段在当前后端查询中未被使用，但保留UI
 });
 const tableData = ref([]);
+
+// 优化分页对象，使其能接收并同步后端返回的完整分页信息
 const pagination = reactive({
   current: 1,
   pageSize: 10,
   total: 0,
+  // 还可以添加后端返回的其他信息，虽然表格不直接用，但方便调试
+  // totalPages: 0,
 });
 
-// --- 表格列定义 ---
+// --- 表格列定义 (已修正) ---
+// dataIndex 与后端返回的字段名 (snake_case) 完全对应
 const columns = [
   { title: '用户名', dataIndex: 'username', key: 'username' },
-  { title: '昵称', dataIndex: 'nickname', key: 'nickname' },
+  { title: '全名', dataIndex: 'full_name', key: 'full_name' },
   { title: '邮箱', dataIndex: 'email', key: 'email' },
-  { title: '状态', dataIndex: 'status', key: 'status' },
-  { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt' },
+  { title: '状态', dataIndex: 'is_active', key: 'status' }, // key保持'status'以便模板中识别
+  { title: '创建时间', dataIndex: 'created_at', key: 'createdAt' },
   { title: '操作', key: 'action', width: 160 },
 ];
 
-// --- 核心逻辑 ---
+// --- 核心逻辑 (已优化) ---
 async function fetchData() {
   loading.value = true;
   try {
     const params = {
       page: pagination.current,
+      // 注意：请确保后端API接受的是 pageSize 或 page_size
+      // 如果后端用的是 page_size, 这里应为 page_size: pagination.pageSize
       pageSize: pagination.pageSize,
       ...searchParams,
     };
 
-    // 调用 API，返回的是 StandardResponse
+    // response 是已经被拦截器解包后的 data 对象
     const response = await getUserList(params);
+    console.log('API Response Data:', response); // 使用更清晰的日志
 
-    // 【重要修改】从 response.data 中解构出真正的列表和总数
-    if (response && response.data) {
-      tableData.value = response.data.list;
-      pagination.total = response.data.total;
+    if (response && response.items) {
+      // 使用后端返回的正确键名 'items'
+      tableData.value = response.items;
+      // 用后端返回的真实分页数据同步前端状态，保证数据一致性
+      pagination.total = response.total;
+      pagination.current = response.page;
+      pagination.pageSize = response.per_page;
     } else {
-      // 如果没有数据，进行防御性编程
+      // 防御性编程，清空数据
       tableData.value = [];
       pagination.total = 0;
     }
   } catch (error) {
-    // 这一行会把捕获到的具体错误对象打印出来，颜色是红的，非常醒目
-    console.error(
-      '%c[index.vue] fetchData 中捕获到错误:',
-      'color: red; font-size: 16px;',
-      error,
-    );
+    console.error('[index.vue] fetchData 中捕获到错误:', error);
     message.error('数据加载失败');
     tableData.value = [];
     pagination.total = 0;
@@ -92,11 +89,13 @@ function handleTableChange(page: any) {
   fetchData();
 }
 
+// 搜索功能
 function handleSearch() {
-  pagination.current = 1;
+  pagination.current = 1; // 搜索时应重置到第一页
   fetchData();
 }
 
+// --- 操作处理函数 ---
 function handleAddNew() {
   userDrawerRef.value?.open('create');
 }
@@ -106,32 +105,33 @@ function handleEdit(record: any) {
 }
 
 async function handleDelete(record: any) {
-  console.log('Deleting record:', record.id);
-  // await deleteUser(record.id);
-  message.success('删除成功');
-  fetchData(); // 重新加载数据
+  try {
+    console.log('正在删除用户:', record.id);
+    // 替换为真实的删除API调用
+    // await deleteUser(record.id);
+    message.success('删除成功');
+    // 如果当前页只剩一条数据且不是第一页，删除后应请求前一页
+    if (tableData.value.length === 1 && pagination.current > 1) {
+      pagination.current--;
+    }
+    fetchData(); // 重新加载数据
+  } catch (error) {
+    message.error('删除失败');
+  }
 }
 
-// 当组件被激活时（包括首次进入和后续返回），加载数据
+// --- 生命周期钩子 (已优化) ---
+
+// onMounted 只负责那些只需要在组件挂载时执行一次的逻辑
+// 如果没有，可以留空或删除
 onMounted(() => {
-  // 在这里放下我们的“探测器”
-  console.log(
-    '%c[onMounted] Hook has been triggered!',
-    'color: lime; font-size: 16px; font-weight: bold;',
-  );
-  // 然后再调用我们原来的 fetchData 函数
+  console.log('用户管理页面已挂载 (onMounted)');
   fetchData();
 });
 
-// 当组件被激活时（包括首次进入和后续返回），加载数据
+// onActivated 统一负责数据加载，它在首次进入和后续从其他页面返回时都会触发
 onActivated(() => {
-  // 在这里放下我们的“探测器”
-  console.log(
-    '%c[onActivated] Hook has been triggered!',
-    'color: lime; font-size: 16px; font-weight: bold;',
-  );
-
-  // 然后再调用我们原来的 fetchData 函数
+  console.log('用户管理页面已激活 (onActivated)，开始获取数据...');
   fetchData();
 });
 </script>
@@ -144,6 +144,7 @@ onActivated(() => {
           <Input
             v-model:value="searchParams.username"
             placeholder="请输入用户名"
+            @pressEnter="handleSearch"
           />
         </FormItem>
         <FormItem label="状态">
@@ -153,8 +154,8 @@ onActivated(() => {
             style="width: 120px"
             allow-clear
           >
-            <Select.Option value="active">启用</Select.Option>
-            <Select.Option value="inactive">禁用</Select.Option>
+            <Select.Option :value="true">启用</Select.Option>
+            <Select.Option :value="false">禁用</Select.Option>
           </Select>
         </FormItem>
         <FormItem>
@@ -174,21 +175,25 @@ onActivated(() => {
         :pagination="pagination"
         :loading="loading"
         row-key="id"
+        bordered
         @change="handleTableChange"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
-            <Tag :color="record.status === 'active' ? 'green' : 'red'">
-              {{ record.status === 'active' ? '启用' : '禁用' }}
+            <Tag :color="record.is_active ? 'green' : 'red'">
+              {{ record.is_active ? '启用' : '禁用' }}
             </Tag>
           </template>
+
           <template v-if="column.key === 'action'">
-            <div class="flex space-x-2">
+            <div class="flex items-center justify-start space-x-2">
               <Button type="link" size="small" @click="handleEdit(record)">
                 编辑
               </Button>
               <Popconfirm
                 title="确定要删除此用户吗？"
+                ok-text="确定"
+                cancel-text="取消"
                 @confirm="handleDelete(record)"
               >
                 <Button type="link" danger size="small">删除</Button>
