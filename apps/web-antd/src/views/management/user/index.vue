@@ -30,7 +30,10 @@ const pagination = reactive({
   pageSize: 10,
   total: 0,
   // 还可以添加后端返回的其他信息，虽然表格不直接用，但方便调试
-  // totalPages: 0,
+  totalPages: 0, // 新增一个字段来存储总页数
+
+  // showTotal 现在可以直接引用我们存储好的 totalPages
+  showTotal: (total: number) => `共 ${total} 条 / ${pagination.totalPages} 页`,
 });
 
 // --- 表格列定义 (已修正) ---
@@ -67,6 +70,7 @@ async function fetchData() {
       pagination.total = response.total;
       pagination.current = response.page;
       pagination.pageSize = response.per_page;
+      pagination.totalPages = response.total_pages;
     } else {
       // 防御性编程，清空数据
       tableData.value = [];
