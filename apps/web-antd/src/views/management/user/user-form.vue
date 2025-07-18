@@ -1,111 +1,159 @@
 <script lang="ts" setup>
-// 2. 引入你的类型定义
-import type { UserItem } from './types';
-
 import { reactive, ref, watch } from 'vue';
+import {
+  Form as AForm,
+  FormItem as AFormItem,
+  Input as AInput,
+  Select as ASelect,
+  Switch as ASwitch,
+  message,
+} from 'ant-design-vue';
+import type { FormInstance } from 'ant-design-vue';
+import { createUser, updateUser } from '#/api/management/user'; // 引入新增和更新的API
 
-// 1. 直接从 ant-design-vue 引入我们将要使用的原生表单组件
-import { Form, FormItem, Input, message, Select } from 'ant-design-vue';
-
-// --- Props & Emits ---
-const props = defineProps<{
-  // 接收从父组件传来的用户信息，用于编辑
-  userData: null | Partial<UserItem>;
-}>();
-
-const emit = defineEmits<{
-  // 提交成功后，通知父组件刷新列表
-  (e: 'success'): void;
-}>();
-
-// --- 表单逻辑 ---
-const formRef = ref(); // antd 表单的引用
-const formState = reactive<Partial<UserItem>>({
-  id: undefined,
-  username: '',
-  email: '',
-  role: undefined,
-  status: 'active',
+// --- 组件通信 (Props & Emits) ---
+const props = defineProps({
+  userData: {
+    type: Object,
+    default: () => null,
+  },
+  roleOptions: {
+    type: Array,
+    default: () => [],
+  },
 });
 
-// 表单验证规则
+// --- 表单状态与规则 ---
+const formRef = ref<FormInstance>();
+const formState = reactive({
+  username: '',
+  password: '',
+  full_name: '',
+  email: '',
+  phone: '',
+  is_active: true,
+  is_superuser: false,
+  role_ids: [], // 用来存储被选中的角色ID
+});
+
 const rules = {
   username: [{ required: true, message: '请输入用户名' }],
-  email: [
-    { required: true, message: '请输入邮箱' },
-    { type: 'email', message: '请输入有效的邮箱地址' },
+  password: [
+    // 只有在新增模式下，密码才是必填的
+    { required: !props.userData, message: '请输入密码' },
   ],
-  status: [{ required: true, message: '请选择状态' }],
+  role_ids: [{ required: true, message: '请至少选择一个角色' }],
 };
 
-// --- 监听外部传入的数据变化 ---
+// --- 核心逻辑 ---
+
+// 使用 watch 监听 props.userData 的变化，当父组件传入数据时，自动填充表单
 watch(
   () => props.userData,
   (newUser) => {
-    // 当父组件传来新的 userData 时（比如点击编辑），用新数据填充表单
-    // 如果是新增，userData 为 null，则重置表单
-    if (newUser && newUser.id) {
-      Object.assign(formState, newUser);
+    if (newUser) {
+      // 编辑模式：用传入的数据填充表单
+      Object.assign(formState, {
+        ...newUser,
+        // 从用户对象中提取出角色的ID列表，用于Select的回显
+        role_ids: newUser.roles?.map((role: any) => role.id) || [],
+        password: '', // 编辑模式下密码框默认为空
+      });
     } else {
-      // 重置表单到初始状态
+      // 新增模式：重置表单为初始状态
       formRef.value?.resetFields();
       Object.assign(formState, {
-        id: undefined,
-        username: '',
-        email: '',
-        role: undefined,
-        status: 'active',
+        is_active: true,
+        is_superuser: false,
+        role_ids: [],
       });
     }
   },
-  { deep: true },
+  { immediate: true }, // 立即执行一次，确保初始状态正确
 );
 
-// --- 提交逻辑 ---
+// 暴露给父组件(UserDrawer)调用的方法
 async function handleSubmit() {
   try {
-    await formRef.value.validate();
-    // 这里是调用真实的新增或更新 API 的地方
-    // const api = formState.id ? updateUser : createUser;
-    // await api(formState);
+    await formRef.value?.validate(); // 触发表单校验
 
-    console.log('提交的表单数据:', formState);
-    message.success(formState.id ? '更新成功' : '新增成功');
-    emit('success'); // 通知父组件成功了
-    return true; // 返回 true，让抽屉组件知道可以关闭了
-  } catch {
-    message.error('操作失败');
-    return false; // 返回 false，操作失败不关闭抽屉
+    const params = { ...formState };
+    // 如果是编辑模式且密码为空，则不提交password字段
+    if (props.userData && !params.password) {
+      delete params.password;
+    }
+
+    if (props.userData) {
+      // 编辑模式
+      await updateUser(props.userData.id, params);
+      message.success('更新成功');
+    } else {
+      // 新增模式
+      await createUser(params);
+      message.success('新增成功');
+    }
+    return true; // 返回 true 表示成功
+  } catch (error) {
+    console.error('表单提交失败:', error);
+    // message.error(...) 会在全局请求拦截器中处理，这里可以不重复提示
+    return false; // 返回 false 表示失败
   }
 }
 
-// 通过 defineExpose 将提交方法暴露给父组件（抽屉组件）
-// 这样父组件的“确定”按钮才能调用到这个方法
+// 将 handleSubmit 方法暴露出去
 defineExpose({
   handleSubmit,
 });
 </script>
 
 <template>
-  <Form ref="formRef" :model="formState" :rules="rules" layout="vertical">
-    <FormItem label="用户名" name="username">
-      <Input v-model:value="formState.username" placeholder="请输入用户名" />
-    </FormItem>
-    <FormItem label="邮箱" name="email">
-      <Input v-model:value="formState.email" placeholder="请输入邮箱" />
-    </FormItem>
-    <FormItem label="角色" name="role">
-      <Select v-model:value="formState.role" placeholder="请选择角色">
-        <Select.Option value="admin">管理员</Select.Option>
-        <Select.Option value="operator">运营人员</Select.Option>
-        <Select.Option value="user">普通用户</Select.Option>
-      </Select>
-    </FormItem>
-    <FormItem label="状态" name="status">
-      <Select v-model:value="formState.status" placeholder="请选择状态">
-        <Select.Option value="active">启用</Select.Option>
-        <Select.Option value="inactive">禁用</Select.Option>
-      </Select>
-    </FormItem>
-  </Form>
+  <AForm ref="formRef" :model="formState" :rules="rules" layout="vertical">
+    <AFormItem label="用户名" name="username">
+      <AInput
+        v-model:value="formState.username"
+        placeholder="请输入用户名"
+        :disabled="!!props.userData"
+      />
+    </AFormItem>
+
+    <AFormItem label="密码" name="password">
+      <AInput
+        v-model:value="formState.password"
+        type="password"
+        :placeholder="props.userData ? '留空则不修改密码' : '请输入密码'"
+      />
+    </AFormItem>
+
+    <AFormItem label="全名/昵称" name="full_name">
+      <AInput v-model:value="formState.full_name" placeholder="请输入全名或昵称" />
+    </AFormItem>
+
+    <AFormItem label="邮箱" name="email">
+      <AInput v-model:value="formState.email" placeholder="请输入邮箱" />
+    </AFormItem>
+
+    <AFormItem label="电话" name="phone">
+      <AInput v-model:value="formState.phone" placeholder="请输入电话号码" />
+    </AFormItem>
+
+    <AFormItem label="角色" name="role_ids">
+      <ASelect
+        v-model:value="formState.role_ids"
+        mode="multiple"
+        placeholder="请选择用户角色"
+        :options="roleOptions"
+        :field-names="{ label: 'name', value: 'id' }"
+      />
+    </AFormItem>
+
+    <AFormItem label="账户状态" name="is_active">
+      <ASwitch v-model:checked="formState.is_active" />
+      <span class="ml-2">{{ formState.is_active ? '启用' : '禁用' }}</span>
+    </AFormItem>
+
+    <AFormItem label="超级用户" name="is_superuser">
+      <ASwitch v-model:checked="formState.is_superuser" />
+      <span class="ml-2">{{ formState.is_superuser ? '是' : '否' }}</span>
+    </AFormItem>
+  </AForm>
 </template>

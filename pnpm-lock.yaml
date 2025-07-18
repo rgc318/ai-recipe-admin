@@ -653,6 +653,9 @@ importers:
 
   apps/web-antd:
     dependencies:
+      '@ant-design/icons-vue':
+        specifier: ^7.0.1
+        version: 7.0.1(vue@3.5.17(typescript@5.8.3))
       '@vben/access':
         specifier: workspace:*
         version: link:../../packages/effects/access
@@ -707,6 +710,9 @@ importers:
       dayjs:
         specifier: 'catalog:'
         version: 1.11.13
+      lodash-es:
+        specifier: ^4.17.21
+        version: 4.17.21
       pinia:
         specifier: ^3.0.3
         version: 3.0.3(typescript@5.8.3)(vue@3.5.17(typescript@5.8.3))

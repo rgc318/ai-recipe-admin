@@ -29,6 +29,7 @@ const routes: RouteRecordRaw[] = [
           icon: 'ion:people-outline',
           // 为子菜单设置更精细的权限码
           // permission: 'user:list',
+          ignoreRouteQuery: true,
         },
       },
       {
