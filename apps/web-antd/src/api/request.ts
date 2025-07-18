@@ -25,6 +25,7 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   const client = new RequestClient({
     ...options,
     baseURL,
+    paramsSerializer: 'repeat',
   });
 
   /**
