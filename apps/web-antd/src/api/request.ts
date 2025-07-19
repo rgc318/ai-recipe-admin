@@ -100,6 +100,16 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   // 通用的错误处理,如果没有进入上面的错误处理逻辑，就会进入这里
   client.addResponseInterceptor(
     errorMessageResponseInterceptor((msg: string, error) => {
+
+      const config = error?.config || {};
+      const status = error?.response?.status;
+
+      // 如果请求的是 logout 接口，并且返回了 401 错误，
+      // 我们就“静默”处理它，不弹出全局错误提示。
+      if (config.url?.includes('/auth/logout') && status === 401) {
+        // 直接返回，不执行下面的 message.error
+        return;
+      }
       // 这里可以根据业务进行定制,你可以拿到 error 内的信息进行定制化处理，根据不同的 code 做不同的提示，而不是直接使用 message.error 提示 msg
       // 当前mock接口返回的错误字段是 error 或者 message
       const responseData = error?.response?.data ?? {};

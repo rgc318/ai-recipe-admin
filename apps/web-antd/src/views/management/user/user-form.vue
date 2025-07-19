@@ -52,24 +52,41 @@ watch(
   () => props.userData,
   (newUser) => {
     if (newUser) {
-      // 编辑模式：用传入的数据填充表单
-      Object.assign(formState, {
-        ...newUser,
-        // 从用户对象中提取出角色的ID列表，用于Select的回显
-        role_ids: newUser.roles?.map((role: any) => role.id) || [],
-        password: '', // 编辑模式下密码框默认为空
-      });
+      // ----------------------------------------------------
+      // 编辑模式：使用逐个字段赋值，确保响应性正确更新
+
+      formState.username = newUser.username;
+      formState.full_name = newUser.full_name || '';
+      formState.email = newUser.email || '';
+      formState.phone = newUser.phone || '';
+      formState.is_active = newUser.is_active;
+      formState.is_superuser = newUser.is_superuser;
+
+      // 从用户对象中提取出角色的ID列表，用于Select的回显
+      formState.role_ids = newUser.roles?.map((role: any) => role.id) || [];
+
+      // 编辑模式下密码框默认为空，不回显密码
+      formState.password = '';
+      // ----------------------------------------------------
+
     } else {
       // 新增模式：重置表单为初始状态
+      // formRef.value?.resetFields() 会重置校验状态和值
       formRef.value?.resetFields();
+      // 确保我们的响应式对象也恢复默认
       Object.assign(formState, {
+        username: '',
+        password: '',
+        full_name: '',
+        email: '',
+        phone: '',
         is_active: true,
         is_superuser: false,
         role_ids: [],
       });
     }
   },
-  { immediate: true }, // 立即执行一次，确保初始状态正确
+  { immediate: true, deep: true }, // deep: true 可以在某些边缘情况下提供更可靠的侦听
 );
 
 // 暴露给父组件(UserDrawer)调用的方法
@@ -151,9 +168,11 @@ defineExpose({
       <span class="ml-2">{{ formState.is_active ? '启用' : '禁用' }}</span>
     </AFormItem>
 
-    <AFormItem label="超级用户" name="is_superuser">
-      <ASwitch v-model:checked="formState.is_superuser" />
-      <span class="ml-2">{{ formState.is_superuser ? '是' : '否' }}</span>
-    </AFormItem>
+    <template v-if="props.userData">
+      <AFormItem label="超级用户" name="is_superuser">
+        <ASwitch v-model:checked="formState.is_superuser" />
+        <span class="ml-2">{{ formState.is_superuser ? '是' : '否' }}</span>
+      </AFormItem>
+    </template>
   </AForm>
 </template>
