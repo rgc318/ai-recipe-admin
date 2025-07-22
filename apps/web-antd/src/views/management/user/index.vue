@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { h, ref } from 'vue';
 import {
+  Avatar, // <--- 在这里添加 Avatar
   Button,
   Card,
   Form,

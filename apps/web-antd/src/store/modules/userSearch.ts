@@ -19,7 +19,6 @@ const initialSearchParams = {
 
 export const useUserSearchStore = defineStore('user-search', () => {
   // --- 状态 (State) ---
-  // 使用 ref 和 reactive 来定义状态
   const loading = ref(false);
   const tableData = reactive<PageResponse<UserReadWithRoles>>({
     items: [],
@@ -38,12 +37,19 @@ export const useUserSearchStore = defineStore('user-search', () => {
     loading.value = true;
     try {
       const response = await getUserListPage(params);
-      // 使用 Object.assign 来更新 reactive 对象
-      Object.assign(tableData, response);
-      tableData.page = params.page || 1;
-      tableData.per_page = params.per_page || 10;
+
+      // 【核心修复】使用 .map() 创建一个新数组和新的对象
+      // 这会强制Vue的响应式系统进行深度更新，确保所有组件都能接收到最新的数据。
+      tableData.items = response.items.map(item => ({ ...item }));
+      // 这能保证 Vue 正确追踪到 items 数组的变化
+      tableData.total = response.total;
+      tableData.page = response.page;
+      tableData.per_page = response.per_page;
+      tableData.total_pages = response.total_pages;
+
     } catch (error: any) {
       message.error(`数据加载失败: ${error.message || '请重试'}`);
+      error.value = error; // <-- 设置错误状态
       tableData.items = [];
       tableData.total = 0;
     } finally {
@@ -64,7 +70,6 @@ export const useUserSearchStore = defineStore('user-search', () => {
     tableData.page = 1;
   }
 
-  // Pinia 的 $reset 方法
   function $reset() {
     loading.value = false;
     Object.assign(tableData, {
@@ -78,9 +83,7 @@ export const useUserSearchStore = defineStore('user-search', () => {
     Object.assign(searchParams, initialSearchParams);
   }
 
-
   // --- 返回 ---
-  // 将所有状态和方法都 return 出去
   return {
     loading,
     tableData,

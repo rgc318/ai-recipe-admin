@@ -13,7 +13,7 @@ import {
 import type { FormInstance, UploadProps } from 'ant-design-vue';
 import { UserOutlined, UploadOutlined } from '@ant-design/icons-vue'; // 【新增】导入图标
 // 【新增】导入新的API方法
-import { createUser, updateUser, generateAvatarUploadPolicy, linkUploadedAvatar } from '#/api/management/user';
+import { createUser, updateUser, adminUpdateUserAvatar, } from '#/api/management/user';
 
 // --- 组件通信 (Props) ---
 
@@ -111,49 +111,25 @@ watch(
 
 // 【新增】自定义上传逻辑
 const customRequest = async ({ file, onSuccess, onError }: any) => {
+  // 这个表单只用于管理员创建/编辑用户，所以我们只处理编辑场景
+  if (!props.userData) {
+    message.warn('请先创建用户，再在编辑模式下上传头像。');
+    onError?.(new Error('Cannot upload avatar in create mode.'));
+    return;
+  }
   uploading.value = true;
   try {
-    // 步骤1: 获取预签名POST策略
-    const policyRes = await generateAvatarUploadPolicy({
-      original_filename: file.name,
-      content_type: file.type,
-    });
-    const policyData = policyRes;
+    // 调用管理员专用的直接上传接口
+    const res = await adminUpdateUserAvatar(props.userData.id, file);
 
-    // 步骤2: 上传文件到Minio
-    const formData = new FormData();
-    for (const key in policyData.fields) {
-      formData.append(key, policyData.fields[key]);
-    }
-    formData.append('file', file);
-
-    const uploadResponse = await fetch(policyData.url, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error('上传到对象存储失败');
-    }
-    const etag = uploadResponse.headers.get('ETag')?.replaceAll('"', '');
-
-    // 步骤3: 通知后端关联文件
-    const linkRes = await linkUploadedAvatar({
-      object_name: policyData.object_name,
-      original_filename: file.name,
-      content_type: file.type,
-      file_size: file.size,
-      etag: etag,
-    });
-
-    // 步骤4: 更新UI
-    formState.avatar_url = linkRes.full_avatar_url || '';
+    // 更新UI
+    formState.avatar_url = res.full_avatar_url || '';
     message.success('头像更新成功！');
-    onSuccess?.(linkRes); // 通知 a-upload 组件上传成功
+    onSuccess?.(res);
 
   } catch (error: any) {
     message.error(`上传失败: ${error.message || '未知错误'}`);
-    onError?.(error); // 通知 a-upload 组件上传失败
+    onError?.(error);
   } finally {
     uploading.value = false;
   }

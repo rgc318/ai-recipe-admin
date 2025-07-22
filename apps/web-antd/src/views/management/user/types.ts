@@ -17,6 +17,7 @@ export interface UserReadWithRoles {
   phone?: string | null;
   full_name?: string | null;
   avatar_url?: string | null;
+  full_avatar_url?: string | null; // 【新增】这是我们需要的完整、可访问的URL
   is_active: boolean;
   is_superuser: boolean;
   is_verified: boolean;
