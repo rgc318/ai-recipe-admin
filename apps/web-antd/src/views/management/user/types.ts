@@ -73,3 +73,28 @@ export interface UserUpdateData {
   is_locked?: boolean;
   role_ids?: string[]; // 全量更新用户的角色列表
 }
+
+
+
+// 【新增】为安全的POST策略请求创建请求体类型
+export interface PresignedPolicyRequest {
+  original_filename: string;
+  content_type: string;
+}
+
+// 【新增】为安全的POST策略响应创建类型
+export interface PresignedUploadPolicy {
+  url: string;
+  fields: Record<string, any>;
+  object_name: string;
+  final_url: string;
+}
+
+// 【新增】为闭环接口创建请求体类型
+export interface AvatarLinkDTO {
+  object_name: string;
+  original_filename: string;
+  content_type: string;
+  file_size: number;
+  etag?: string | null;
+}

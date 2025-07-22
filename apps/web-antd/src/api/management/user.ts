@@ -1,6 +1,8 @@
 // 文件路径: src/api/management/user.ts
 
 import type {
+  AvatarLinkDTO,
+  PresignedPolicyRequest, PresignedUploadPolicy,
   UserCreateData,
   UserItem,
   UserListParams,
@@ -14,6 +16,30 @@ import type { StandardResponse, PageResponse } from '#/api/types';
 const API_PREFIX = '/user'; // 后端 API 主路径
 
 /**
+ * @description 【安全模式】为上传新头像生成预签名POST策略
+ * @param data 包含文件名和文件类型的对象
+ */
+export function generateAvatarUploadPolicy(data: PresignedPolicyRequest) {
+  return requestClient.post<StandardResponse<PresignedUploadPolicy>>(
+    `${API_PREFIX}/me/avatar/generate-upload-policy`,
+    data,
+  );
+}
+
+
+/**
+ * @description 关联已通过预签名URL上传的头像
+ * @param data 包含所有文件元数据的对象
+ */
+export function linkUploadedAvatar(data: AvatarLinkDTO) {
+  return requestClient.patch<StandardResponse<UserReadWithRoles>>(
+    `${API_PREFIX}/me/avatar/link-uploaded-file`,
+    data,
+  );
+}
+
+
+/**
  * @description 获取用户列表
  */
 export function getUserList(params: any) {
@@ -23,6 +49,27 @@ export function getUserList(params: any) {
   >(
     API_PREFIX, // 第一个参数：URL 字符串
     { params }, // 第二个参数：包含 params 的配置对象
+  );
+}
+
+
+/**
+ * @description 【管理员】为指定用户上传头像（直接上传）
+ * @param userId 用户的UUID
+ * @param file 头像文件
+ */
+export function adminUpdateUserAvatar(userId: string, file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return requestClient.patch<StandardResponse<UserReadWithRoles>>(
+    `${API_PREFIX}/${userId}/avatar`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
   );
 }
 

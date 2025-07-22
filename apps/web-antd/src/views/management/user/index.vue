@@ -43,6 +43,7 @@ const formatDateTime = (date: string | null | undefined) =>
   date ? new Date(date).toLocaleString('zh-CN', { hour12: false }) : '-';
 
 const createColumns = (): TableColumnType<UserReadWithRoles>[] => [
+  { title: '头像', dataIndex: 'full_avatar_url', key: 'avatar', width: 80, fixed: 'left', align: 'center' },
   { title: '用户名', dataIndex: 'username', key: 'username', width: 120, fixed: 'left', sorter: true, align: 'center' },
   { title: '角色', dataIndex: 'roles', key: 'roles', width: 180, align: 'center' },
   { title: '状态', dataIndex: 'is_active', key: 'is_active', width: 100, sorter: true, align: 'center' },
@@ -120,6 +121,11 @@ const columns = createColumns();
         @change="handleTableChange"
       >
         <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'avatar'">
+            <Avatar :src="record.full_avatar_url">
+              <template #icon><UserOutlined /></template>
+            </Avatar>
+          </template>
           <template v-if="column.key === 'roles'">
             <div v-if="record.roles?.length" class="flex flex-wrap gap-1">
               <Tag v-for="role in record.roles" :key="role.id" color="blue">
