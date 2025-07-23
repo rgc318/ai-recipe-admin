@@ -22,3 +22,8 @@ export interface PermissionSyncResponse {
   created: number; // 本次同步中新创建的权限数量
   // created_items?: PermissionRead[]; // (可选) 后端可能会返回新创建项的详细列表
 }
+
+export interface PermissionSelector {
+  id: string;
+  name: string;
+}

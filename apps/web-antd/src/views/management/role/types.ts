@@ -1,3 +1,5 @@
+import type {PermissionRead} from "#/views/management/permission/types";
+
 export interface RoleItem {
   id: string;
   name: string;
@@ -65,4 +67,46 @@ export interface RoleListParams {
   order_by?: string; // 例如: "created_at:desc"
   name?: string;     // 模糊搜索
   code?: string;     // 精确过滤
+}
+
+export interface RoleRead {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoleReadWithPermissions extends RoleRead {
+  permissions: PermissionRead[];
+}
+
+export interface RoleSelector {
+  id: string;
+  name: string;
+}
+
+export interface RoleCreate {
+  code: string;
+  name:string;
+  description?: string | null;
+  permission_ids: string[];
+}
+
+
+export type RoleUpdate = Partial<RoleCreate>;
+
+export interface RoleListParams {
+  page?: number;
+  per_page?: number;
+  /**
+   * 排序字段, 逗号分隔, -号表示降序
+   * @example '-created_at,name'
+   */
+  sort?: string;
+  /**
+   * 通用搜索关键字，后端将对 name 和 code 字段进行模糊查询
+   */
+  search?: string;
 }

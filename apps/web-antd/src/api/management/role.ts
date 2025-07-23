@@ -3,7 +3,7 @@
 import type {
   RoleCreateData,
   RoleItem,
-  RoleListParams, RolePermissionsUpdateData,
+  RoleListParams, RolePermissionsUpdateData, RoleReadWithPermissions,
   RoleSelectorItem, RoleUpdateData,
   RoleWithPermissions
 } from '#/views/management/role/types';
@@ -126,3 +126,21 @@ export function revokePermissionFromRole(roleId: string, permissionId: string) {
     `${API_PREFIX}/${roleId}/permissions/${permissionId}`,
   );
 }
+
+// =================================================================
+// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 核心修改点 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+// =================================================================
+/**
+ * 【全新实现】获取角色列表 (支持动态分页、排序、过滤)
+ * 这是新的主查询函数，替换旧的 getRoleListPage
+ * @param params - 强类型的查询参数对象 (RoleListParams)
+ * @returns 分页后的角色列表，且每个角色都包含权限详情
+ */
+export function listRolesPaginated(params: RoleListParams) {
+  return requestClient.get<StandardResponse<PageResponse<RoleReadWithPermissions>>>(
+    `${API_PREFIX}/`, // 后端路径是 '/'
+    { params },
+  );
+}
+// =================================================================
+

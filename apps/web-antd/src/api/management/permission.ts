@@ -3,7 +3,11 @@
 import type { StandardResponse, PageResponse } from '#/api/types';
 import { requestClient } from '#/api/request';
 // 假设你的类型定义在 #/views/management/permission/types.ts
-import type { PermissionRead, PermissionSyncResponse } from '#/views/management/permission/types';
+import type {
+  PermissionRead,
+  PermissionSelector,
+  PermissionSyncResponse
+} from '#/views/management/permission/types';
 
 const API_PREFIX = '/permission'; // 后端权限 API 主路径
 
@@ -40,6 +44,19 @@ export function syncPermissionsFromPayload(data: Record<string, any>[]) {
   );
 }
 
+/**
+ * @description 获取所有权限列表（用于下拉选择器）
+ * 内置一个高的 limit 来获取所有数据，实际项目可替换为专门的 /selector 接口
+ */
+/**
+ * @description 获取所有权限列表（用于下拉选择器）
+ */
+export function getPermissionsForSelector() {
+  // 1. 调用专门的 /selector 接口
+  return requestClient.get<StandardResponse<PermissionSelector[]>>(
+    `${API_PREFIX}/selector`,
+  );
+}
 /**
  * 注意：
  * 根据我们的设计，权限的创建、更新和删除是由“同步”功能管理的，
