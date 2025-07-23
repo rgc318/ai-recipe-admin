@@ -60,6 +60,25 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   function formatToken(token: null | string) {
     return token ? `Bearer ${token}` : null;
   }
+  // token过期的处理
+  client.addResponseInterceptor(
+    authenticateResponseInterceptor({
+      client,
+      doReAuthenticate,
+      doRefreshToken,
+      enableRefreshToken: preferences.app.enableRefreshToken,
+      formatToken,
+      shouldReAuthenticate: (error) => {
+        const config = error?.config || {};
+        // 如果导致 401 的请求是 logout 接口，则【不要】启动重认证流程
+        if (config.url?.includes('/auth/logout')) {
+          return false;
+        }
+        // 对于所有其他接口的 401，正常启动重认证流程
+        return true;
+      },
+    }),
+  );
 
   // 请求头处理
   client.addRequestInterceptor({
@@ -86,25 +105,7 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
     }),
   );
 
-  // token过期的处理
-  client.addResponseInterceptor(
-    authenticateResponseInterceptor({
-      client,
-      doReAuthenticate,
-      doRefreshToken,
-      enableRefreshToken: preferences.app.enableRefreshToken,
-      formatToken,
-      shouldReAuthenticate: (error) => {
-        const config = error?.config || {};
-        // 如果导致 401 的请求是 logout 接口，则【不要】启动重认证流程
-        if (config.url?.includes('/auth/logout')) {
-          return false;
-        }
-        // 对于所有其他接口的 401，正常启动重认证流程
-        return true;
-      },
-    }),
-  );
+
 
   // 通用的错误处理,如果没有进入上面的错误处理逻辑，就会进入这里
   client.addResponseInterceptor(
