@@ -16,5 +16,30 @@
     "user": "User Management",
     "role": "Role Management",
     "permission": "Permission Management"
+  },
+  "profile": {
+    "title": "Profile Center",
+    "tabs": {
+      "basicInfo": "Basic Info",
+      "securitySettings": "Security Settings"
+    },
+    "basic": {
+      "title": "Basic Information",
+      "username": "Username",
+      "fullName": "Full Name",
+      "email": "Email",
+      "uploadAvatar": "My Avatar",
+      "uploadTip": "Supports JPG, PNG format, size no more than 2MB",
+      "saveButton": "Save Changes",
+      "updateSuccess": "Profile updated successfully!"
+    },
+    "security": {
+      "title": "Security Settings",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "changePasswordButton": "Change Password",
+      "updateSuccess": "Password changed successfully!"
+    }
   }
 }

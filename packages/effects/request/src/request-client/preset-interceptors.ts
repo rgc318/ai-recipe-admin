@@ -60,6 +60,13 @@ export const authenticateResponseInterceptor = ({
   return {
     rejected: async (error) => {
       const { config, response } = error;
+      // 添加一个“断路器”，检查导致401的请求是否是logout接口本身
+      if (config.url?.includes('/auth/logout')) {
+        // 如果是，说明我们正在执行登出操作，即使它因为token过期而失败，
+        // 也不应该再次触发“重新认证/登出”流程。
+        // 直接将错误抛出，中断循环。
+        throw error;
+      }
       // 如果不是 401 错误，直接抛出异常
       if (response?.status !== 401) {
         throw error;

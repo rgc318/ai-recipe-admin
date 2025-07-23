@@ -30,6 +30,9 @@ import { useMagicKeys, whenever } from '@vueuse/core';
 
 import { LockScreenModal } from '../lock-screen';
 
+import { useRouter } from 'vue-router';
+
+
 interface Props {
   /**
    * 头像
@@ -83,6 +86,11 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{ logout: [] }>();
+
+// =================================================================
+// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 2. 获取 router 实例 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+// =================================================================
+const router = useRouter();
 
 const { globalLockScreenShortcutKey, globalLogoutShortcutKey } =
   usePreferences();
@@ -198,7 +206,10 @@ if (enableShortcutKey.value) {
     </DropdownMenuTrigger>
     <DropdownMenuContent class="mr-2 min-w-[240px] p-0 pb-1">
       <div ref="refContent">
-        <DropdownMenuLabel class="flex items-center p-3">
+        <DropdownMenuLabel
+          class="flex cursor-pointer items-center p-3 hover:bg-slate-100 dark:hover:bg-slate-800"
+          @click="router.push('/profile/index')"
+        >
           <VbenAvatar
             :alt="text"
             :src="avatar"
@@ -226,7 +237,7 @@ if (enableShortcutKey.value) {
         <DropdownMenuSeparator v-if="menus?.length" />
         <DropdownMenuItem
           v-for="menu in menus"
-          :key="menu.text"
+          :key="menu.key"
           class="mx-1 flex cursor-pointer items-center rounded-sm py-1 leading-8"
           @click="menu.handler"
         >

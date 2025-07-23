@@ -99,3 +99,21 @@ export interface AvatarLinkDTO {
   file_size: number;
   etag?: string | null;
 }
+
+/**
+ * 用户更新自己个人资料的请求体
+ * 只包含允许用户自己修改的字段
+ */
+export interface UserUpdateProfileData {
+  full_name?: string | null;
+  email?: string | null;
+  // 注意：不应包含 is_active, is_superuser 等管理员才能修改的字段
+}
+
+/**
+ * 用户修改自己密码的请求体
+ */
+export interface UserChangePasswordData {
+  old_password: string;
+  new_password: string;
+}

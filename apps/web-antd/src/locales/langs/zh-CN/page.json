@@ -16,5 +16,30 @@
     "user": "用户管理",
     "role": "角色管理",
     "permission": "权限管理"
+  },
+  "profile": {
+    "title": "个人中心",
+    "tabs": {
+      "basicInfo": "基本资料",
+      "securitySettings": "安全设置"
+    },
+    "basic": {
+      "title": "基本资料",
+      "username": "用户名",
+      "fullName": "全名",
+      "email": "邮箱",
+      "uploadAvatar": "我的头像",
+      "uploadTip": "支持 JPG, PNG 格式，大小不超过 2MB",
+      "saveButton": "保存修改",
+      "updateSuccess": "个人资料更新成功！"
+    },
+    "security": {
+      "title": "安全设置",
+      "currentPassword": "当前密码",
+      "newPassword": "新密码",
+      "confirmPassword": "确认新密码",
+      "changePasswordButton": "修改密码",
+      "updateSuccess": "密码修改成功！"
+    }
   }
 }

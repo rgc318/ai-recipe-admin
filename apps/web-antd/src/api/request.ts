@@ -94,6 +94,15 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
       doRefreshToken,
       enableRefreshToken: preferences.app.enableRefreshToken,
       formatToken,
+      shouldReAuthenticate: (error) => {
+        const config = error?.config || {};
+        // 如果导致 401 的请求是 logout 接口，则【不要】启动重认证流程
+        if (config.url?.includes('/auth/logout')) {
+          return false;
+        }
+        // 对于所有其他接口的 401，正常启动重认证流程
+        return true;
+      },
     }),
   );
 
