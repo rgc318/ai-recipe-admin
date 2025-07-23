@@ -17,6 +17,17 @@
     "role": "角色管理",
     "permission": "权限管理"
   },
+  "permission": {
+    "name": "权限名称",
+    "code": "权限代码",
+    "group": "所属模块",
+    "description": "描述",
+    "syncPermissions": "同步权限",
+    "syncConfirmationTitle": "确认同步权限?",
+    "syncConfirmationDesc": "这将根据配置文件批量创建不存在的权限，这是一个安全的操作。",
+    "syncSuccess": "权限同步成功！",
+    "syncFailed": "权限同步失败"
+  },
   "profile": {
     "title": "个人中心",
     "tabs": {

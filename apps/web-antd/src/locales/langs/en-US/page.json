@@ -17,6 +17,17 @@
     "role": "Role Management",
     "permission": "Permission Management"
   },
+  "permission": {
+    "name": "Permission Name",
+    "code": "Permission Code",
+    "group": "Module",
+    "description": "Description",
+    "syncPermissions": "Sync Permissions",
+    "syncConfirmationTitle": "Confirm Sync Permissions?",
+    "syncConfirmationDesc": "This will bulk-create non-existent permissions based on the configuration file. This is a safe operation.",
+    "syncSuccess": "Permissions synced successfully!",
+    "syncFailed": "Permission sync failed"
+  },
   "profile": {
     "title": "Profile Center",
     "tabs": {

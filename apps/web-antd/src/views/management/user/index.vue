@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { h, ref } from 'vue';
+import {computed, h, ref} from 'vue';
 import {
   Avatar, // <--- 在这里添加 Avatar
   Button,
@@ -27,12 +27,25 @@ const {
   rolesForSelector,
   pagination,
   searchParams,
+  selectedRowKeys, // 2. 从 hook 中解构出 selectedRowKeys
   handleTableChange,
   handleSearch,
   handleReset,
   handleDeleteUser,
+  handleBatchDelete, // 3. 从 hook 中解构出 handleBatchDelete
   fetchData,
 } = useUserManagement();
+
+// 4. 定义 rowSelection 配置对象，使其与 selectedRowKeys 双向绑定
+const rowSelection = computed(() => ({
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: (keys: string[]) => {
+    selectedRowKeys.value = keys;
+  },
+}));
+
+// 5. 计算属性，判断是否有行被选中
+const hasSelected = computed(() => selectedRowKeys.value.length > 0);
 
 const userDrawerRef = ref<InstanceType<typeof UserDrawer> | null>(null);
 
@@ -104,7 +117,20 @@ const columns = createColumns();
 
     <Card :bordered="false">
       <div class="mb-4 flex justify-between items-center">
-        <Button type="primary" @click="openDrawer('create')">新增用户</Button>
+        <Space>
+          <Button type="primary" @click="openDrawer('create')">新增用户</Button>
+          <Popconfirm
+            title="确定要删除选中的用户吗？"
+            ok-text="确定"
+            cancel-text="取消"
+            @confirm="handleBatchDelete"
+          >
+            <Button type="danger" :disabled="!hasSelected">批量删除</Button>
+          </Popconfirm>
+          <span v-if="hasSelected" class="text-gray-500 text-sm">
+            已选择 {{ selectedRowKeys.length }} 项
+          </span>
+        </Space>
         <Tooltip title="刷新">
           <Button shape="circle" :icon="h(SyncOutlined)" :loading="loading" @click="fetchData" />
         </Tooltip>
@@ -115,6 +141,7 @@ const columns = createColumns();
         :data-source="tableData.items"
         :pagination="pagination"
         :loading="loading"
+        :row-selection="rowSelection"
         row-key="id"
         bordered
         size="small"

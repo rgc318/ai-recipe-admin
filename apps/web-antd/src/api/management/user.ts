@@ -84,42 +84,6 @@ export function getUserListPage(params: UserListParams) {
     { params },
   );
 }
-// /**
-//  * @description 创建新用户
-//  */
-// export function createUser(data: UserCreate) {
-//   // 正确的调用方式: post(url, data)
-//   return requestClient.post<StandardResponse<UserItem>>(API_PREFIX, data);
-// }
-//
-// /**
-//  * @description 更新用户信息
-//  */
-// export function updateUser(id: number | string, data: UserUpdate) {
-//   // 正确的调用方式: put(url, data)
-//   return requestClient.put<StandardResponse<UserItem>>(
-//     `${API_PREFIX}/${id}`,
-//     data,
-//   );
-// }
-//
-// /**
-//  * @description 删除用户
-//  */
-// export function deleteUser(id: number | string) {
-//   // 正确的调用方式: delete(url)
-//   return requestClient.delete<StandardResponse<null>>(`${API_PREFIX}/${id}`);
-// }
-/**
- * @description 获取用户列表 (分页、排序、过滤)
- * @param params - 强类型的查询参数
- */
-// export function getUserListPage(params: UserListParams) {
-//   return requestClient.get<StandardResponse<PageResponse<UserReadWithRoles>>>(
-//     `${API_PREFIX}/`,
-//     { params },
-//   );
-// }
 
 /**
  * @description 创建新用户
@@ -147,6 +111,14 @@ export function updateUser(userId: string, data: UserUpdateData) {
  */
 export function deleteUser(userId: string) {
   return requestClient.delete<StandardResponse<null>>(`${API_PREFIX}/${userId}`);
+}
+
+/**
+ * @description 批量(软)删除用户
+ * @param data - 包含 user_ids 列表的对象
+ */
+export function batchDeleteUsers(data: { user_ids: string[] }) {
+  return requestClient.delete<StandardResponse<null>>(`${API_PREFIX}/batch`, { data });
 }
 
 /**
