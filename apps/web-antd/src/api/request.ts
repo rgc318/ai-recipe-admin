@@ -32,17 +32,22 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
    * 重新认证逻辑
    */
   async function doReAuthenticate() {
-    console.warn('Access token or refresh token is invalid or expired. ');
-    const accessStore = useAccessStore();
-    const authStore = useAuthStore();
-    accessStore.setAccessToken(null);
-    if (
-      preferences.app.loginExpiredMode === 'modal' &&
-      accessStore.isAccessChecked
-    ) {
-      accessStore.setLoginExpired(true);
-    } else {
-      await authStore.logout();
+    try {
+      console.warn('Access token or refresh token is invalid or expired. ');
+      const accessStore = useAccessStore();
+      const authStore = useAuthStore();
+      accessStore.setAccessToken(null);
+      if (
+        preferences.app.loginExpiredMode === 'modal' &&
+        accessStore.isAccessChecked
+      ) {
+        accessStore.setLoginExpired(true);
+      } else {
+        await authStore.logout();
+      }
+    } catch (e) {
+      console.error('Error occurred inside doReAuthenticate:', e); // 添加 catch 来捕获内部错误
+      throw e; // 重新抛出以维持原有逻辑
     }
   }
 
@@ -80,6 +85,15 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
     }),
   );
 
+  // 处理返回的响应数据格式
+  client.addResponseInterceptor(
+    defaultResponseInterceptor({
+      codeField: 'code',
+      dataField: 'data',
+      successCode: 0,
+    }),
+  );
+
   // 请求头处理
   client.addRequestInterceptor({
     fulfilled: async (config) => {
@@ -96,14 +110,7 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
     },
   });
 
-  // 处理返回的响应数据格式
-  client.addResponseInterceptor(
-    defaultResponseInterceptor({
-      codeField: 'code',
-      dataField: 'data',
-      successCode: 0,
-    }),
-  );
+
 
 
 
@@ -114,6 +121,16 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
       const config = error?.config || {};
       const status = error?.response?.status;
 
+      if (status === 401) {
+        console.warn('Request failed with 401. Re-authentication triggered. No additional message shown.');
+        return; // 直接返回，不执行下面的 message.error
+      }
+      if (!error?.response) {
+        console.error('An unexpected non-HTTP error occurred:', error);
+        // 你可以决定是否给用户一个通用的程序错误提示
+        message.error('发生未知程序错误，请联系技术支持。');
+        return;
+      }
       // 如果请求的是 logout 接口，并且返回了 401 错误，
       // 我们就“静默”处理它，不弹出全局错误提示。
       if (config.url?.includes('/auth/logout') && status === 401) {
