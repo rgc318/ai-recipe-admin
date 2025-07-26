@@ -8,7 +8,7 @@ import {
   message,
 } from 'ant-design-vue';
 import type { FormInstance } from 'ant-design-vue';
-import { createRole, updateRole } from '#/api/management/role';
+import { createRole, updateRole } from '#/api/management/users/role';
 
 const props = defineProps({
   roleData: {

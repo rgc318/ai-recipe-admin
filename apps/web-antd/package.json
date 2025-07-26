@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@types/lodash-es": "^4.17.12",
     "@vben/access": "workspace:*",
     "@vben/common-ui": "workspace:*",
     "@vben/constants": "workspace:*",
@@ -48,6 +49,7 @@
     "lodash-es": "^4.17.21",
     "pinia": "catalog:",
     "vue": "catalog:",
-    "vue-router": "catalog:"
+    "vue-router": "catalog:",
+    "vuedraggable": "^2.24.3"
   }
 }

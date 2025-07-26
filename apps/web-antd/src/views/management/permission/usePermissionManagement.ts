@@ -3,7 +3,7 @@ import { message } from 'ant-design-vue';
 import type { TableProps } from 'ant-design-vue';
 
 // 1. 【修正】导入正确的新函数名 syncPermissionsFromSource
-import { listPermissionsPaginated, syncPermissionsFromSource } from '#/api/management/permission';
+import { listPermissionsPaginated, syncPermissionsFromSource } from '#/api/management/users/permission';
 // 导入前端的权限定义文件，仅在需要“前端驱动”模式时使用
 // import { permissionsToSync } from '#/config/permissions.config';
 import type { PermissionRead } from './types';

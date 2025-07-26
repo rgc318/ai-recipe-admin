@@ -9,7 +9,7 @@ import { useUserSearchStore } from '#/store/modules/userSearch';
 // 【第二步】只导入视图层需要的类型和少量的 API 函数
 import type { UserReadWithRoles } from '#/views/management/user/types';
 // 2. 导入新的批量删除 API 函数 (假设你已在 API 文件中创建)
-import { deleteUser, batchDeleteUsers } from '#/api/management/user';
+import { deleteUser, batchDeleteUsers } from '#/api/management/users/user';
 
 
 /**

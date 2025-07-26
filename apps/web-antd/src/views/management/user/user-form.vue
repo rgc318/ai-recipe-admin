@@ -13,7 +13,7 @@ import {
 import type { FormInstance, UploadProps } from 'ant-design-vue';
 import { UserOutlined, UploadOutlined } from '@ant-design/icons-vue'; // 【新增】导入图标
 // 【新增】导入新的API方法
-import { createUser, updateUser, adminUpdateUserAvatar, } from '#/api/management/user';
+import { createUser, updateUser, adminUpdateUserAvatar, } from '#/api/management/users/user';
 
 // --- 组件通信 (Props) ---
 

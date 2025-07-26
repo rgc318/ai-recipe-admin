@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { Button as AButton, Drawer as ADrawer, message } from 'ant-design-vue';
 import UserForm from './user-form.vue';
-import { getRolesForSelector } from '#/api/management/role'; // 假设你有一个获取所有角色的API
+import { getRolesForSelector } from '#/api/management/users/role'; // 假设你有一个获取所有角色的API
 
 const emit = defineEmits(['success']);
 

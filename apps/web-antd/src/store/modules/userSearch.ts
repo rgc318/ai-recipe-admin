@@ -5,8 +5,8 @@ import { message } from 'ant-design-vue';
 import type { PageResponse } from '#/api/types';
 import type { UserReadWithRoles, UserListParams } from '#/views/management/user/types';
 import type { RoleSelectorItem } from '#/views/management/role/types';
-import { getUserListPage } from '#/api/management/user';
-import { getRolesForSelector } from '#/api/management/role';
+import { getUserListPage } from '#/api/management/users/user';
+import { getRolesForSelector } from '#/api/management/users/role';
 
 // 初始化的筛选条件
 const initialSearchParams = {

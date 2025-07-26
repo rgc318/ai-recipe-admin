@@ -2,7 +2,7 @@
 import { ref, reactive, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import type { TableProps } from 'ant-design-vue';
-import { listRolesPaginated, deleteRole } from '#/api/management/role';
+import { listRolesPaginated, deleteRole } from '#/api/management/users/role';
 import type { RoleReadWithPermissions } from './types';
 import type { PageResponse } from '#/api/types';
 

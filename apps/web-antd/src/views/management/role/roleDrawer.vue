@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { Button as AButton, Drawer as ADrawer, message } from 'ant-design-vue';
 import RoleForm from './role-form.vue';
-import { getPermissionsForSelector } from '#/api/management/permission';
+import { getPermissionsForSelector } from '#/api/management/users/permission';
 
 const emit = defineEmits(['success']);
 
