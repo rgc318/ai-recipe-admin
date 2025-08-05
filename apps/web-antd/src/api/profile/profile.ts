@@ -49,7 +49,7 @@ export function updateMyAvatar(file: File) {
   const formData = new FormData();
   formData.append('file', file);
 
-  return requestClient.post<StandardResponse<UserReadWithRoles>>(
+  return requestClient.patch<StandardResponse<UserReadWithRoles>>(
     `${API_ME_PREFIX}/me/avatar`,
     formData,
     {
