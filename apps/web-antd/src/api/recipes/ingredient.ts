@@ -1,7 +1,7 @@
 // src/api/management/recipes/ingredient.ts
 import { requestClient } from '#/api/request';
 import type { StandardResponse, PageResponse } from '#/api/types';
-import type { IngredientRead } from '#/views/management/recipe/types';
+import type { IngredientRead } from '#/views/recipe/types';
 
 const API_PREFIX = '/ingredients';
 

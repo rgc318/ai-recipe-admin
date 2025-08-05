@@ -17,6 +17,45 @@
     "role": "角色管理",
     "permission": "权限管理"
   },
+  "content": {
+    "title": "内容管理",
+    "recipe": {
+      "title": "菜谱管理",
+      "editorTitle": "菜谱编辑",
+      "create": "新建菜谱",
+      "table": {
+        "title": "菜谱标题",
+        "status": "状态",
+        "category": "分类",
+        "tags": "标签",
+        "author": "作者",
+        "updatedAt": "更新时间"
+      },
+      "filter": {
+        "title": "标题",
+        "status": "状态",
+        "category": "分类",
+        "tags": "标签",
+        "placeholder": {
+          "title": "模糊搜索标题",
+          "status": "请选择状态",
+          "category": "请选择分类",
+          "tags": "请选择标签"
+        }
+      },
+      "status": {
+        "published": "已发布",
+        "draft": "草稿",
+        "archived": "已归档"
+      }
+    },
+    "category": {
+      "title": "分类管理"
+    },
+    "comment": {
+      "title": "评论管理"
+    }
+  },
   "permission": {
     "name": "权限名称",
     "code": "权限代码",

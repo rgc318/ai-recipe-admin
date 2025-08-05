@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { h } from 'vue';
+import {h, ref} from 'vue';
 import {
   Avatar,
   Button,
@@ -18,7 +18,9 @@ import {
 import { SyncOutlined, QuestionCircleOutlined, UserOutlined } from '@ant-design/icons-vue';
 import { useRecipeManagement } from './useRecipeManagement';
 import type { TableColumnType } from 'ant-design-vue';
-import type { RecipeRead } from './types';
+import type {RecipeRead, TagRead} from './types';
+import {debounce} from "lodash-es";
+import {searchTags} from "#/api/recipes/tag";
 
 const {
   loading,
@@ -39,6 +41,25 @@ const {
   handleBatchDelete,
   refreshData,
 } = useRecipeManagement();
+
+
+// --- 【核心新增】为标签筛选器创建独立的远程搜索逻辑 ---
+const tagFilterOptions = ref<TagRead[]>([]);
+const tagFilterSearching = ref(false);
+
+const handleTagFilterSearch = debounce(async (query: string) => {
+  if (!query) {
+    tagFilterOptions.value = [];
+    return;
+  }
+  tagFilterSearching.value = true;
+  try {
+    const response = await searchTags({ name: query });
+    tagFilterOptions.value = response.items;
+  } finally {
+    tagFilterSearching.value = false;
+  }
+}, 300);
 
 const formatDateTime = (date: string | null | undefined) =>
   date ? new Date(date).toLocaleString('zh-CN', { hour12: false }) : '-';
@@ -83,10 +104,14 @@ const columns: TableColumnType<RecipeRead>[] = [
           <Select
             v-model:value="searchParams.tag_ids"
             mode="multiple"
-            :options="tagsForSelector"
-            placeholder="请选择标签"
+            placeholder="搜索并选择标签进行筛选"
             style="width: 200px"
             allow-clear
+            :options="tagFilterOptions"
+            :field-names="{ label: 'name', value: 'id' }"
+            :filter-option="false"
+            :loading="tagFilterSearching"
+            @search="handleTagFilterSearch"
           />
         </FormItem>
         <FormItem>

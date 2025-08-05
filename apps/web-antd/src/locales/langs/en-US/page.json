@@ -17,6 +17,45 @@
     "role": "Role Management",
     "permission": "Permission Management"
   },
+  "content": {
+    "title": "Content Management",
+    "recipe": {
+      "title": "Recipe Management",
+      "editorTitle": "Recipe Editor",
+      "create": "New Recipe",
+      "table": {
+        "title": "Title",
+        "status": "Status",
+        "category": "Category",
+        "tags": "Tags",
+        "author": "Author",
+        "updatedAt": "Updated At"
+      },
+      "filter": {
+        "title": "Title",
+        "status": "Status",
+        "category": "Category",
+        "tags": "Tags",
+        "placeholder": {
+          "title": "Search title...",
+          "status": "Select status",
+          "category": "Select category",
+          "tags": "Select tags"
+        }
+      },
+      "status": {
+        "published": "Published",
+        "draft": "Draft",
+        "archived": "Archived"
+      }
+    },
+    "category": {
+      "title": "Category Management"
+    },
+    "comment": {
+      "title": "Comment Management"
+    }
+  },
   "permission": {
     "name": "Permission Name",
     "code": "Permission Code",

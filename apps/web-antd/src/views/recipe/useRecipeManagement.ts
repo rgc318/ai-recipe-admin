@@ -7,7 +7,7 @@ import { useRecipeSearchStore } from '#/store/modules/recipe'; // 假设已创�
 import { storeToRefs } from 'pinia';
 import type { TableProps } from 'ant-design-vue';
 import type { RecipeRead } from './types';
-import { deleteRecipe, batchDeleteRecipes } from '#/api/management/recipes/recipe'; // 假设已创建
+import { deleteRecipe, batchDeleteRecipes } from '#/api/recipes/recipe'; // 假设已创建
 
 export function useRecipeManagement() {
   const router = useRouter();

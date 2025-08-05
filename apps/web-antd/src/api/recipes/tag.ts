@@ -1,7 +1,7 @@
 // src/api/management/recipes/tag.ts
 import { requestClient } from '#/api/request';
 import type { StandardResponse, PageResponse } from '#/api/types';
-import type { TagRead } from '#/views/management/recipe/types'; // 复用菜谱模块的类型
+import type { TagRead } from '#/views/recipe/types'; // 复用菜谱模块的类型
 
 const API_PREFIX = '/tags';
 

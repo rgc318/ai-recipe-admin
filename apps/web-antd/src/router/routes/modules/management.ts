@@ -12,7 +12,7 @@ const routes: RouteRecordRaw[] = [
       title: $t('page.management.title'), // 推荐使用 $t 进行国际化
       // 关键：为整个模块设置一个总的权限码
       // 只有拥有 'system:view' 权限的用户才能看到“系统管理”这个菜单
-      permission: 'system:view',
+      // authority: ['content:view'], // 使用文档中定义的 'authority'
     },
     name: 'Management',
     path: '/management', // 这个路径主要用于菜单分组
@@ -28,7 +28,6 @@ const routes: RouteRecordRaw[] = [
           title: $t('page.management.user'),
           icon: 'ion:people-outline',
           // 为子菜单设置更精细的权限码
-          // permission: 'user:list',
           ignoreRouteQuery: true,
         },
       },
@@ -49,7 +48,6 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: $t('page.management.permission'),
           icon: 'ion:key-outline',
-          // permission: 'permission:list',
         },
       },
     ],
