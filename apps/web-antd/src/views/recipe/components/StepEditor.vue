@@ -1,118 +1,162 @@
 <script lang="ts" setup>
-import { ref, watch, h } from 'vue';
-import { Button, Input, Upload, Avatar, Card, message } from 'ant-design-vue';
+import { h, ref, watch } from 'vue';
 import {
-  PlusOutlined,
-  DeleteOutlined,
-  HolderOutlined,
-  UploadOutlined,
-  PictureOutlined,
-} from '@ant-design/icons-vue';
+  Button,
+  Input,
+  Upload,
+  Card,
+  message,
+  type UploadFile,
+  type UploadChangeParam,
+} from 'ant-design-vue';
+import { PlusOutlined, DeleteOutlined, HolderOutlined, ClockCircleOutlined } from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import { v4 as uuidv4 } from 'uuid';
 
-// --- 定义步骤的数据结构 ---
-interface Step {
-  text: string;
-  image_url: string | null;
+// 1. 【核心】导入正确的类型
+import type { RecipeStepInput, FileRecordRead } from '../types';
+
+// 为UI列表项添加一个唯一ID，用于v-for的key
+interface DraggableStepItem extends RecipeStepInput {
+  ui_id: string;
 }
 
-// --- 组件通信: v-model ---
+// --- 组件通信 (v-model) ---
 const props = defineProps<{
-  modelValue: string; // 父组件传入的是一个 JSON 字符串
+  modelValue: RecipeStepInput[];
 }>();
-
 const emit = defineEmits(['update:modelValue']);
 
 // --- 内部状态 ---
-const internalSteps = ref<Step[]>([]);
+const internalSteps = ref<DraggableStepItem[]>([]);
 
 // --- 核心逻辑 ---
 
-// 当父组件传入数据时，解析 JSON 字符串
+// 当父组件传入数据时，同步到内部状态
 watch(
   () => props.modelValue,
   (newValue) => {
-    try {
-      if (newValue && typeof newValue === 'string') {
-        const parsed = JSON.parse(newValue);
-        if (Array.isArray(parsed)) {
-          internalSteps.value = parsed;
-          return;
-        }
-      }
-      // 如果传入的不是合法的步骤数组JSON，则将其作为第一步的文本
-      internalSteps.value = [{ text: newValue || '', image_url: null }];
-    } catch (e) {
-      internalSteps.value = [{ text: newValue || '', image_url: null }];
+    const newSteps = (newValue || []).map(step => ({
+      ...step,
+      ui_id: uuidv4(), // 为每个步骤附加一个临时的UI ID
+    }));
+
+    // 只有当数据真的不一致时才更新，防止不必要的重渲染
+    if (JSON.stringify(internalSteps.value.map(s => ({...s, ui_id: ''}))) !== JSON.stringify(newSteps.map(s => ({...s, ui_id: ''})))) {
+      internalSteps.value = newSteps;
     }
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 );
 
-// 当内部步骤列表变化时，转换为 JSON 字符串并通知父组件
-function emitUpdate() {
-  emit('update:modelValue', JSON.stringify(internalSteps.value));
-}
+// 使用一个 deep watcher 自动将任何变更通知给父组件
+watch(
+  internalSteps,
+  (newValue) => {
+    // 在通知父组件前，移除临时的 ui_id 属性
+    const pureSteps = newValue.map(({ ui_id, ...rest }) => rest);
+    if (JSON.stringify(props.modelValue) !== JSON.stringify(pureSteps)) {
+      emit('update:modelValue', pureSteps);
+    }
+  },
+  { deep: true },
+);
 
+// 添加一个空的步骤
 function addStep() {
-  internalSteps.value.push({ text: '', image_url: null });
-  emitUpdate();
+  internalSteps.value.push({
+    ui_id: uuidv4(),
+    instruction: '',
+    duration: null,
+    image_ids: [],
+  });
 }
 
+// 移除一个步骤
 function removeStep(index: number) {
   internalSteps.value.splice(index, 1);
-  emitUpdate();
 }
 
-// 模拟图片上传逻辑
-function handleImageUpload(info: any, step: Step) {
-  // 在真实项目中，这里应调用上传接口
-  if (info.file.status === 'uploading') {
-    return;
-  }
-  if (info.file.status === 'done') {
-    // 假设上传成功后，后端返回一个可访问的 URL
-    const imageUrl = info.file.response.url; // 请根据你的API响应调整
-    step.image_url = imageUrl;
-    emitUpdate();
-    message.success(`${info.file.name} 上传成功`);
-  } else if (info.file.status === 'error') {
-    message.error(`${info.file.name} 上传失败.`);
-  }
+// 处理图片上传与删除
+function handleImageChange(info: UploadChangeParam, step: DraggableStepItem) {
+  const newImageIds: string[] = info.fileList
+    .map((file) => {
+      if (file.status === 'done') {
+        // 新上传的文件，从 response 获取 ID
+        return file.response?.data?.id || file.uid;
+      }
+      // 已存在的文件，直接使用它的 uid (我们在 mapIdsToFileList 中设置了)
+      return file.uid;
+    })
+    .filter((id): id is string => !!id);
+
+  step.image_ids = newImageIds;
+}
+
+// 将 image_ids 映射为 antd Upload 组件需要的 fileList 格式
+function mapIdsToFileList(image_ids: string[] = []): UploadFile[] {
+  return image_ids.map(id => ({
+    uid: id,
+    name: `图片_${id.substring(0, 6)}`,
+    status: 'done',
+    url: '', // TODO: 需要一个API根据ID批量获取预览URL
+  }));
 }
 </script>
 
 <template>
   <div class="step-editor">
-    <draggable v-model="internalSteps" item-key="index" handle=".drag-handle" @end="emitUpdate">
+    <draggable v-model="internalSteps" :item-key="'ui_id'" handle=".drag-handle" class="space-y-4">
+
+<!--      <template #header>-->
+<!--        &lt;!&ndash; 空插槽，不做任何事情 &ndash;&gt;-->
+<!--      </template>-->
+<!--      <template #footer>-->
+<!--        &lt;!&ndash; 空插槽，不做任何事情 &ndash;&gt;-->
+<!--      </template>-->
+
       <template #item="{ element: step, index }">
-        <Card class="mb-4">
+        <Card>
           <div class="flex gap-4">
-            <div class="flex flex-col items-center pt-2">
+            <div class="flex flex-col items-center pt-2 text-center">
               <span class="font-bold text-lg">{{ index + 1 }}</span>
-              <HolderOutlined class="drag-handle cursor-move text-gray-400 mt-2" />
+              <HolderOutlined class="drag-handle cursor-move text-gray-400 mt-2 text-lg" />
             </div>
 
             <div class="flex-grow">
               <Input.TextArea
-                v-model:value="step.text"
+                v-model:value="step.instruction"
                 placeholder="请输入这一步做什么..."
                 :rows="4"
-                @change="emitUpdate"
               />
-              <div class="mt-2 flex items-center gap-4">
-                <Avatar :size="64" shape="square" :src="step.image_url">
-                  <template #icon><PictureOutlined /></template>
-                </Avatar>
-                <Upload
-                  name="stepImage"
-                  :show-upload-list="false"
-                  action="/api/v1/files/upload"
-                  @change="(info) => handleImageUpload(info, step)"
+
+              <div class="mt-4">
+                <Input
+                  v-model:value="step.duration"
+                  placeholder="例如: 15分钟"
+                  style="width: 200px;"
                 >
-                  <Button :icon="h(UploadOutlined)">
-                    {{ step.image_url ? '更换步骤图' : '上传步骤图' }}
-                  </Button>
+                  <template #addonBefore>
+                    <ClockCircleOutlined />
+                    <span class="ml-1">耗时</span>
+                  </template>
+                </Input>
+              </div>
+
+              <div class="mt-4">
+                <p class="font-semibold mb-2 text-gray-600">步骤图片 (可上传多张)</p>
+                <Upload
+                  name="file"
+                  action="/api/v1/files/upload?profile=recipes"
+                  list-type="picture-card"
+                  multiple
+                  :file-list="mapIdsToFileList(step.image_ids)"
+                  @change="(info) => handleImageChange(info, step)"
+                >
+                  <div>
+                    <PlusOutlined />
+                    <div class="mt-2">上传图片</div>
+                  </div>
                 </Upload>
               </div>
             </div>
@@ -129,7 +173,7 @@ function handleImageUpload(info: any, step: Step) {
       </template>
     </draggable>
 
-    <Button type="dashed" block @click="addStep">
+    <Button type="dashed" block @click="addStep" class="mt-4">
       <PlusOutlined />
       添加新步骤
     </Button>

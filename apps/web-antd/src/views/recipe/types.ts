@@ -1,7 +1,13 @@
 // src/views/management/recipe/types.ts
 
-// --- 基础关联实体的只读类型 ---
-// 这些通常由各自的模块提供，这里为方便演示而简化定义
+// --- 基础实体 ---
+export interface FileRecordRead {
+  id: string;
+  url: string;
+  original_filename: string;
+  content_type: string;
+}
+
 export interface TagRead {
   id: string;
   name: string;
@@ -10,6 +16,13 @@ export interface TagRead {
 export interface CategoryRead {
   id: string;
   name: string;
+  slug: string;
+  description: string | null;
+  parent_id: string | null;
+}
+
+export interface CategoryReadWithChildren extends CategoryRead {
+  children: CategoryReadWithChildren[];
 }
 
 export interface IngredientRead {
@@ -22,77 +35,100 @@ export interface UnitRead {
   name: string;
 }
 
-export interface UserReadBasic {
+// --- 菜谱步骤 ---
+// 用于 API 响应
+export interface RecipeStepRead {
   id: string;
-  username: string;
-  avatar_url?: string | null;
+  step_number: number;
+  instruction: string;
+  duration: string | null; // 【新增】步骤时长
+  images: FileRecordRead[];
 }
 
-// --- 菜谱配料的核心类型 ---
+// 用于创建/更新时提交
+export interface RecipeStepInput {
+  instruction: string;
+  duration?: string | null; // 【新增】步骤时长
+  image_ids?: string[];
+}
 
-// 用于API响应的配料详情
+// --- 菜谱配料 ---
+// 用于 API 响应
 export interface RecipeIngredientRead {
   id: string;
+  group: string | null; // 【新增】配料分组
   quantity: number | null;
   note: string | null;
   ingredient: IngredientRead;
   unit: UnitRead | null;
 }
 
-// 用于创建/更新时提交给后端的配料数据结构
+// 用于创建/更新时提交
 export interface RecipeIngredientInput {
-  ingredient_id: string;
+  ingredientName: string | null; // 用户在输入框看到和输入的
+  ingredientId: string | null;   // 用户选中后，我们记录的ID
   unit_id: string | null;
+  group?: string | null; // 【新增】配料分组
   quantity: number | null;
   note: string | null;
 }
 
-// --- 菜谱的核心类型 ---
-
-// 用于从API读取并展示的完整菜谱数据
+// --- 核心菜谱模型 ---
+// 用于 API 响应 (对应 RecipeRead Pydantic Schema)
 export interface RecipeRead {
   id: string;
   title: string;
   description: string | null;
-  steps: string;
-  status: 'published' | 'draft' | 'archived'; // 假设后端有状态字段
-  cover_image_url: string | null;
+  prep_time: string | null;
+  cook_time: string | null;
+  servings: string | null;
   created_at: string;
   updated_at: string;
-  author: UserReadBasic; // 假设后端会返回创建者信息
-  category: CategoryRead | null;
+
+  // 【新增】附加信息
+  difficulty: string | null;
+  equipment: string | null;
+  author_notes: string | null;
+
+  cover_image: FileRecordRead | null;
+  gallery_images: FileRecordRead[];
+  steps: RecipeStepRead[]; // 内部已更新
+  ingredients: RecipeIngredientRead[]; // 内部已更新
   tags: TagRead[];
-  ingredients: RecipeIngredientRead[];
-  // 更多可能的字段
-  prep_time_minutes: number | null;
-  cook_time_minutes: number | null;
-  servings: string | null;
+  categories: CategoryRead[];
 }
 
-// 创建新菜谱的请求体
+// 用于创建菜谱 (对应 RecipeCreate Pydantic Schema)
 export interface RecipeCreateData {
   title: string;
   description?: string | null;
-  steps: string;
-  category_id?: string | null;
-  tag_ids?: string[];
-  ingredients?: RecipeIngredientInput[];
-  // 其他字段...
+  prep_time?: string | null;
+  cook_time?: string | null;
+  servings?: string | null;
+
+  // 【新增】附加信息
+  difficulty?: string | null;
+  equipment?: string | null;
+  author_notes?: string | null;
+
+  cover_image_id?: string | null;
+  gallery_image_ids?: string[];
+  steps?: RecipeStepInput[]; // 内部已更新
+  ingredients?: RecipeIngredientInput[]; // 内部已更新
+  category_ids?: string[];
+  tags?: (string | { id: string; name: string })[];
 }
 
-// 更新菜谱的请求体 (所有字段可选)
-export interface RecipeUpdateData extends Partial<RecipeCreateData> {
-  status?: 'published' | 'draft' | 'archived';
-}
+// 用于更新菜谱 (对应 RecipeUpdate Pydantic Schema)
+// 因为 RecipeUpdate 是 Partial<RecipeCreateData>，所以它会自动获得所有新的可选字段
+export type RecipeUpdateData = Partial<RecipeCreateData>;
 
-// 菜谱列表的查询参数
+// 列表查询参数 (保持不变或根据后端微调)
 export interface RecipeListParams {
   page?: number;
   per_page?: number;
   sort?: string;
   title?: string;
-  status?: 'published' | 'draft' | 'archived';
-  category_id?: string;
+  category_ids?: string[];
   tag_ids?: string[];
-  author_id?: string;
 }

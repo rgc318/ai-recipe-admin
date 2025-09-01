@@ -5,18 +5,17 @@ import { defineStore } from 'pinia';
 import { message } from 'ant-design-vue';
 
 import type { PageResponse } from '#/api/types';
-import type { RecipeRead, RecipeListParams, CategoryRead, TagRead } from '#/views/recipe/types';
+// 【修改】导入树形分类类型
+import type { RecipeRead, RecipeListParams, CategoryReadWithChildren } from '#/views/recipe/types';
 import { getRecipeListPage } from '#/api/recipes/recipe';
-import { getAllTags } from '#/api/recipes/tag'; // 假设已创建
-// import { getAllCategories } from '#/api/management/category'; // 未来会用到
+// 【修改】导入新的 category tree API
+import { getCategoryTree } from '#/api/management/category';
 
-// 初始化的筛选条件
+// 初始筛选条件保持不变，非常棒
 const initialSearchParams: Omit<RecipeListParams, 'page' | 'per_page' | 'sort'> = {
   title: undefined,
-  status: undefined,
-  category_id: undefined,
-  tag_ids: undefined,
-  author_id: undefined,
+  category_ids: [],
+  tag_ids: [],
 };
 
 export const useRecipeSearchStore = defineStore('recipe-search', () => {
@@ -31,17 +30,21 @@ export const useRecipeSearchStore = defineStore('recipe-search', () => {
   });
   const searchParams = reactive({ ...initialSearchParams });
 
-  // 用于筛选器的选项列表
-  // 【核心修改】不再需要 tagsForSelector 状态
-  const categoriesForSelector = ref<CategoryRead[]>([]);
+  // 【修改】用于“列表页筛选器”的分类选项，现在是树形结构
+  const categoriesForSelector = ref<CategoryReadWithChildren[]>([]);
 
   // --- 动作 (Actions) ---
 
-  // 获取列表数据
+  // fetchData 函数逻辑正确，无需修改
   async function fetchData(params: RecipeListParams) {
     loading.value = true;
     try {
-      const response = await getRecipeListPage(params);
+      const cleanParams = { ...params };
+      if (!cleanParams.title) delete cleanParams.title;
+      if (!cleanParams.category_ids?.length) delete cleanParams.category_ids;
+      if (!cleanParams.tag_ids?.length) delete cleanParams.tag_ids;
+
+      const response = await getRecipeListPage(cleanParams);
       tableData.items = response.items;
       tableData.total = response.total;
       tableData.page = response.page;
@@ -56,22 +59,24 @@ export const useRecipeSearchStore = defineStore('recipe-search', () => {
     }
   }
 
-  // 【核心修改】不再需要获取标签
+  // 【修改】获取“列表页筛选器”所需的初始数据
   async function fetchInitialSelectors() {
     try {
-      // const [categoriesResponse] = await Promise.all([getAllCategories()]);
-      // categoriesForSelector.value = categoriesResponse.items;
+      // 调用新的 API，它直接返回树形结构，非常高效
+      const categoriesTree = await getCategoryTree();
+      categoriesForSelector.value = categoriesTree;
+      // TODO 已解决：不再需要将扁平列表转换为树状结构
     } catch (error) {
       message.error('加载分类筛选列表失败');
     }
   }
 
-  // 重置搜索条件
+  // 重置搜索条件 (无需修改)
   function resetState() {
     Object.assign(searchParams, initialSearchParams);
   }
 
-  // 完整的 Pinia Store 重置
+  // 完整的 Pinia Store 重置 (无需修改)
   function $reset() {
     loading.value = false;
     Object.assign(tableData, { items: [], total: 0, page: 1, per_page: 10, total_pages: 0 });
@@ -87,6 +92,6 @@ export const useRecipeSearchStore = defineStore('recipe-search', () => {
     fetchData,
     fetchInitialSelectors,
     resetState,
-    $reset
+    $reset,
   };
 });

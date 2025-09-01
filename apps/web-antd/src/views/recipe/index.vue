@@ -1,34 +1,19 @@
 <script lang="ts" setup>
-import {h, ref} from 'vue';
-import {
-  Avatar,
-  Button,
-  Card,
-  Form,
-  FormItem,
-  Input,
-  Popconfirm,
-  Select,
-  Table,
-  Tag,
-  Space,
-  Tooltip,
-  TreeSelect,
-} from 'ant-design-vue';
-import { SyncOutlined, QuestionCircleOutlined, UserOutlined } from '@ant-design/icons-vue';
+import { h, ref } from 'vue';
+import { Avatar, Button, Card, Form, FormItem, Input, Popconfirm, Select, Table, Tag, Space, Tooltip, TreeSelect } from 'ant-design-vue';
+import { SyncOutlined, QuestionCircleOutlined, PictureOutlined } from '@ant-design/icons-vue';
 import { useRecipeManagement } from './useRecipeManagement';
 import type { TableColumnType } from 'ant-design-vue';
-import type {RecipeRead, TagRead} from './types';
-import {debounce} from "lodash-es";
-import {searchTags} from "#/api/recipes/tag";
+import type { RecipeRead, TagRead } from './types';
+import { debounce } from 'lodash-es';
+import { searchTags } from '#/api/recipes/tag';
 
 const {
   loading,
   tableData,
   pagination,
   searchParams,
-  categoriesForSelector,
-  tagsForSelector,
+  categoriesForSelector, // 这个现在是树形结构
   selectedRowKeys,
   hasSelected,
   rowSelection,
@@ -42,8 +27,7 @@ const {
   refreshData,
 } = useRecipeManagement();
 
-
-// --- 【核心新增】为标签筛选器创建独立的远程搜索逻辑 ---
+// 标签筛选器的远程搜索逻辑 (保持不变, 设计得很好)
 const tagFilterOptions = ref<TagRead[]>([]);
 const tagFilterSearching = ref(false);
 
@@ -64,16 +48,17 @@ const handleTagFilterSearch = debounce(async (query: string) => {
 const formatDateTime = (date: string | null | undefined) =>
   date ? new Date(date).toLocaleString('zh-CN', { hour12: false }) : '-';
 
+// 【核心修改】重新定义表格的列
 const columns: TableColumnType<RecipeRead>[] = [
-  { title: '封面', dataIndex: 'cover_image_url', key: 'cover', width: 80, fixed: 'left', align: 'center' },
+  { title: '封面', dataIndex: 'cover_image', key: 'cover', width: 80, fixed: 'left', align: 'center' },
   { title: '菜谱标题', dataIndex: 'title', key: 'title', width: 250, fixed: 'left', sorter: true },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 100, sorter: true, align: 'center' },
-  { title: '分类', dataIndex: 'category', key: 'category', width: 150, align: 'center' },
-  { title: '标签', dataIndex: 'tags', key: 'tags', width: 200, align: 'center' },
-  { title: '作者', dataIndex: 'author', key: 'author', width: 120, sorter: true, align: 'center' },
+  { title: '分类', dataIndex: 'categories', key: 'categories', width: 200, align: 'center' },
+  { title: '标签', dataIndex: 'tags', key: 'tags', width: 220, align: 'center' },
+  { title: '准备时间', dataIndex: 'prep_time', key: 'prep_time', width: 120, align: 'center' },
   { title: '更新时间', dataIndex: 'updated_at', key: 'updated_at', width: 180, sorter: true, align: 'center' },
   { title: '创建时间', dataIndex: 'created_at', key: 'created_at', width: 180, sorter: true, align: 'center' },
   { title: '操作', key: 'action', width: 130, fixed: 'right', align: 'center' },
+  // 已移除 "状态" 和 "作者" 列
 ];
 </script>
 
@@ -84,27 +69,25 @@ const columns: TableColumnType<RecipeRead>[] = [
         <FormItem label="标题">
           <Input v-model:value="searchParams.title" placeholder="模糊搜索标题" allow-clear @pressEnter="handleSearch" />
         </FormItem>
-        <FormItem label="状态">
-          <Select v-model:value="searchParams.status" placeholder="请选择状态" style="width: 120px" allow-clear>
-            <Select.Option value="published">已发布</Select.Option>
-            <Select.Option value="draft">草稿</Select.Option>
-          </Select>
-        </FormItem>
+
         <FormItem label="分类">
           <TreeSelect
-            v-model:value="searchParams.category_id"
+            v-model:value="searchParams.category_ids"
             :tree-data="categoriesForSelector"
-            placeholder="请选择分类"
+            :field-names="{ label: 'name', value: 'id', children: 'children' }"
+            multiple
             tree-default-expand-all
             allow-clear
+            placeholder="请选择分类"
             style="width: 200px"
           />
         </FormItem>
+
         <FormItem label="标签">
           <Select
             v-model:value="searchParams.tag_ids"
             mode="multiple"
-            placeholder="搜索并选择标签进行筛选"
+            placeholder="搜索并选择标签"
             style="width: 200px"
             allow-clear
             :options="tagFilterOptions"
@@ -151,18 +134,18 @@ const columns: TableColumnType<RecipeRead>[] = [
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'cover'">
-            <Avatar :size="48" shape="square" :src="record.cover_image_url">
-              <template #icon><UserOutlined /></template>
+            <Avatar :size="48" shape="square" :src="record.cover_image?.url">
+              <template #icon><PictureOutlined /></template>
             </Avatar>
           </template>
-          <template v-if="column.key === 'status'">
-            <Tag :color="record.status === 'published' ? 'success' : 'processing'">
-              {{ record.status === 'published' ? '已发布' : '草稿' }}
-            </Tag>
+
+          <template v-if="column.key === 'categories'">
+            <div v-if="record.categories?.length" class="flex flex-wrap gap-1">
+              <Tag v-for="cat in record.categories" :key="cat.id">{{ cat.name }}</Tag>
+            </div>
+            <span v-else>-</span>
           </template>
-          <template v-if="column.key === 'category'">
-            <span>{{ record.category?.name || '-' }}</span>
-          </template>
+
           <template v-if="column.key === 'tags'">
             <div v-if="record.tags?.length" class="flex flex-wrap gap-1">
               <Tag v-for="tag in record.tags.slice(0, 3)" :key="tag.id" color="blue">{{ tag.name }}</Tag>
@@ -172,12 +155,15 @@ const columns: TableColumnType<RecipeRead>[] = [
             </div>
             <span v-else>-</span>
           </template>
-          <template v-if="column.key === 'author'">
-            <span>{{ record.author?.username || '-' }}</span>
+
+          <template v-if="column.key === 'prep_time'">
+            <span>{{ record.prep_time || '-' }}</span>
           </template>
+
           <template v-if="['updated_at', 'created_at'].includes(column.key as string)">
             <span>{{ formatDateTime(record[column.dataIndex as keyof RecipeRead]) }}</span>
           </template>
+
           <template v-if="column.key === 'action'">
             <Space>
               <Button type="link" size="small" @click="handleEdit(record)">编辑</Button>
