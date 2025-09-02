@@ -157,9 +157,24 @@ watch(internalGroups, (newGroups) => {
 
 // --- 事件处理 ---
 function addGroup() {
+  const baseName = '新的分组';
+  // 1. 获取所有已存在的分组名，放入一个 Set 中以便快速查找
+  const existingNames = new Set(internalGroups.value.map(group => group.name));
+
+  let newGroupName = baseName;
+  let counter = 2;
+
+  // 2. 循环检查，直到找到一个不重复的名称
+  // 例如，如果 "新的分组" 已存在，就尝试 "新的分组 2"，以此类推
+  while (existingNames.has(newGroupName)) {
+    newGroupName = `${baseName} ${counter}`;
+    counter++;
+  }
+
+  // 3. 使用这个独一无二的名称来创建新分组
   internalGroups.value.push({
     ui_id: uuidv4(),
-    name: '新的分组',
+    name: newGroupName,
     ingredients: [],
   });
 }
@@ -200,6 +215,21 @@ function handleIngredientSelect(ingredient: UIIngredient, value: string, option:
 }
 const filterUnitOption = (input: string, option: any) => option.name.toLowerCase().includes(input.toLowerCase());
 
+function getGroupNameStatus(name: string, currentId: string): '' | 'error' {
+  // 查找是否存在其他分组也叫这个名字
+  const isDuplicate = internalGroups.value.some(
+    group => group.name === name && group.ui_id !== currentId
+  );
+  return isDuplicate ? 'error' : '';
+}
+
+// 如果名称重复，提供提示信息
+function getGroupNameHelp(name: string, currentId: string): string {
+  if (getGroupNameStatus(name, currentId) === 'error') {
+    return '分组名称已存在，会导致配料自动合并';
+  }
+  return '';
+}
 </script>
 
 <template>
@@ -209,7 +239,13 @@ const filterUnitOption = (input: string, option: any) => option.name.toLowerCase
         <Card class="bg-gray-50 dark:bg-gray-800/50">
           <div class="flex items-center gap-2 mb-4 border-b pb-2">
             <HolderOutlined class="group-drag-handle cursor-move text-gray-400 text-lg" />
+            <FormItem
+              class="flex-grow mb-0"
+              :validate-status="getGroupNameStatus(group.name, group.ui_id)"
+              :help="getGroupNameHelp(group.name, group.ui_id)"
+            >
             <Input v-model:value="group.name" placeholder="输入分组名 (例如: 面团部分)，留空则为未分组" class="font-bold text-base border-none bg-transparent shadow-none" />
+            </FormItem>
             <Button type="text" danger shape="circle" :icon="h(DeleteOutlined)" @click="removeGroup(groupIndex)" />
           </div>
 
