@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { h, ref, watch } from 'vue';
+import {computed, h, ref, watch} from 'vue';
 import { Button, AutoComplete, Select, Input, InputNumber, Form, FormItem, message, Card } from 'ant-design-vue';
 import { PlusOutlined, DeleteOutlined, HolderOutlined } from "@ant-design/icons-vue";
 import draggable from 'vuedraggable';
@@ -34,6 +34,32 @@ const referenceStore = useRecipeReferenceStore();
 const { allUnits } = storeToRefs(referenceStore);
 
 // --- 核心逻辑 ---
+
+const optimizedUnitOptions = computed(() => {
+  if (!allUnits.value || allUnits.value.length === 0) {
+    return [];
+  }
+
+  // 1. 定义常用单位的“权重”。名字越靠前，排序越靠前。
+  const commonUnitsOrder = ['克', 'g', '毫升', 'ml', '个', '勺', '茶匙', '汤匙', '片', '块'];
+
+  // 2. 对从 store 拿到的原始列表进行排序
+  const sortedUnits = [...allUnits.value].sort((a, b) => {
+    const indexA = commonUnitsOrder.indexOf(a.name);
+    const indexB = commonUnitsOrder.indexOf(b.name);
+
+    // 如果两个单位都在常用列表里，按列表里的顺序排
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    // 如果只有 A 在常用列表里，A 排前面
+    if (indexA !== -1) return -1;
+    // 如果只有 B 在常用列表里，B 排前面
+    if (indexB !== -1) return 1;
+    // 如果都不在，按原始顺序（或按字母顺序）
+    return a.name.localeCompare(b.name);
+  });
+
+  return sortedUnits;
+});
 
 // 1. 【核心修改】将 internalGroupsToFlatData 函数的定义，提前到所有 watch 函数之前
 const internalGroupsToFlatData = (): RecipeIngredientInput[] => {
@@ -268,7 +294,16 @@ function getGroupNameHelp(name: string, currentId: string): string {
                     <InputNumber v-model:value="ingredient.quantity" placeholder="数量" class="w-full" />
                   </FormItem>
                   <FormItem class="mb-0">
-                    <Select v-model:value="ingredient.unit_id" show-search placeholder="单位" :options="allUnits" :field-names="{ label: 'name', value: 'id' }" :filter-option="filterUnitOption" allow-clear />
+                    <Select
+                      v-model:value="ingredient.unit_id"
+                      show-search
+                      placeholder="单位"
+
+                      :options="optimizedUnitOptions"
+
+                      :field-names="{ label: 'name', value: 'id' }"
+                      :filter-option="filterUnitOption" allow-clear
+                    />
                   </FormItem>
                   <FormItem class="mb-0">
                     <Input v-model:value="ingredient.note" placeholder="备注 (例如: 切丁)" />

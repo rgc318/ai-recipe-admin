@@ -34,11 +34,11 @@ export const useRecipeReferenceStore = defineStore('recipe-reference', () => {
       // 使用 Promise.all 并行加载，提升性能
       // 【修改】同时加载单位和“分类树”
       const [unitsResponse, categoriesTree] = await Promise.all([
-        getAllUnits({ per_page: 999 }),
+        getAllUnits(),
         getCategoryTree(),
       ]);
 
-      allUnits.value = unitsResponse.items || [];
+      allUnits.value = unitsResponse || [];
       allCategories.value = categoriesTree || []; // API 直接返回树形数组
 
       hasFetched.value = true; // 标记为已获取
