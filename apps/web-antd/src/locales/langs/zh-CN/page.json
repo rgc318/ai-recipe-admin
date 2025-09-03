@@ -16,7 +16,8 @@
     "user": "用户管理",
     "role": "角色管理",
     "permission": "权限管理",
-    "category": "分类管理"
+    "category": "分类管理",
+    "unit": "单位管理"
   },
   "content": {
     "title": "内容管理",
@@ -52,6 +53,9 @@
     },
     "category": {
       "title": "分类管理"
+    },
+    "unit": {
+      "title": "单位管理"
     },
     "comment": {
       "title": "评论管理"

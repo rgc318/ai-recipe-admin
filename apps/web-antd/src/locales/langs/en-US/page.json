@@ -16,7 +16,8 @@
     "user": "User Management",
     "role": "Role Management",
     "permission": "Permission Management",
-    "category": "Category Management"
+    "category": "Category Management",
+    "unit": "Unit Management"
   },
   "content": {
     "title": "Content Management",
@@ -52,6 +53,9 @@
     },
     "category": {
       "title": "Category Management"
+    },
+    "unit": {
+      "title": "Unit Management"
     },
     "comment": {
       "title": "Comment Management"
