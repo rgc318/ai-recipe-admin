@@ -32,6 +32,9 @@ const formState = reactive<RecipeCreateData>({
   prep_time: '',
   cook_time: '',
   servings: '',
+  difficulty: '',
+  equipment: '',
+  author_notes: '',
   cover_image_id: null,
   gallery_image_ids: [],
   category_ids: [],
@@ -55,6 +58,9 @@ onMounted(async () => {
       formState.prep_time = data.prep_time || '';
       formState.cook_time = data.cook_time || '';
       formState.servings = data.servings || '';
+      formState.difficulty = data.difficulty || '';
+      formState.equipment = data.equipment || '';
+      formState.author_notes = data.author_notes || '';
       formState.cover_image_id = data.cover_image?.id || null;
       formState.gallery_image_ids = data.gallery_images.map((img) => img.id);
       formState.category_ids = data.categories.map((cat) => cat.id);
@@ -80,6 +86,7 @@ onMounted(async () => {
       // 将 RecipeStepRead[] 映射为 RecipeStepInput[]
       formState.steps = data.steps.map((step) => ({
         instruction: step.instruction,
+        duration: step.duration || null, // 或者 || ''
         image_ids: step.images.map((img) => img.id),
       }));
     } catch (error: any) {
