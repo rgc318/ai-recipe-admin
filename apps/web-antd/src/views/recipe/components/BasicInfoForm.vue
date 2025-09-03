@@ -60,7 +60,14 @@ const handleTagSearch = debounce(async (query: string) => {
   tagSearching.value = true;
   try {
     const response = await searchTags({ name: query });
-    tagOptions.value = response.items;
+
+    // 【核心修正】过滤掉与当前输入完全一样的选项
+    // 我们将后端返回的列表进行过滤，只保留那些名称和当前输入值（忽略大小写和前后空格）不完全一样的项
+    const cleanQuery = query.trim().toLowerCase();
+    tagOptions.value = response.items.filter(
+      tag => tag.name.toLowerCase() !== cleanQuery
+    );
+
   } catch (error) {
     message.error('搜索标签失败');
   } finally {
@@ -217,6 +224,9 @@ function mapIdsToFileList(image_ids: string[] = []): UploadFile[] {
         multiple
         allow-clear
         placeholder="为菜谱选择一个或多个分类"
+
+        show-search
+        tree-node-filter-prop="name"
       />
     </FormItem>
 

@@ -1,56 +1,35 @@
-// src/api/management/category.ts
 import { requestClient } from '#/api/request';
 import type { StandardResponse, PageResponse } from '#/api/types';
 import type {
-  CategoryListParams,
   CategoryRead,
+  CategoryCreate,
+  CategoryUpdate,
   CategoryReadWithChildren,
-  CategoryCreateData,
-  CategoryUpdateData,
-} from '#/views/category/types'; // 假设类型文件路径
+} from '#/views/management/category/types';
 
 const API_PREFIX = '/categories';
 
-/**
- * @description 获取完整的分类树 (用于前端树形选择器等)
- */
+// 获取分页列表 (给后台管理表格用)
+export function listCategoriesPaginated(params: any) {
+  return requestClient.get<StandardResponse<PageResponse<CategoryRead>>>(`${API_PREFIX}/`, { params });
+}
+
+// 获取分类树 (给“选择父分类”的下拉框用)
 export function getCategoryTree() {
   return requestClient.get<StandardResponse<CategoryReadWithChildren[]>>(`${API_PREFIX}/tree`);
 }
 
-/**
- * @description [管理员] 获取分类列表 (动态分页、排序、过滤)
- */
-export function getCategoryListPage(params: CategoryListParams) {
-  return requestClient.get<StandardResponse<PageResponse<CategoryRead>>>(`${API_PREFIX}/`, {
-    params,
-  });
-}
-
-/**
- * @description [管理员] 获取单个分类详情
- */
-export function getCategoryDetails(categoryId: string) {
-  return requestClient.get<StandardResponse<CategoryRead>>(`${API_PREFIX}/${categoryId}`);
-}
-
-/**
- * @description [管理员] 创建新分类
- */
-export function createCategory(data: CategoryCreateData) {
+// 创建新分类
+export function createCategory(data: CategoryCreate) {
   return requestClient.post<StandardResponse<CategoryRead>>(`${API_PREFIX}/`, data);
 }
 
-/**
- * @description [管理员] 更新分类
- */
-export function updateCategory(categoryId: string, data: CategoryUpdateData) {
-  return requestClient.put<StandardResponse<CategoryRead>>(`${API_PREFIX}/${categoryId}`, data);
+// 更新分类
+export function updateCategory(id: string, data: CategoryUpdate) {
+  return requestClient.put<StandardResponse<CategoryRead>>(`${API_PREFIX}/${id}`, data);
 }
 
-/**
- * @description [管理员] 删除分类
- */
-export function deleteCategory(categoryId: string) {
-  return requestClient.delete<StandardResponse<null>>(`${API_PREFIX}/${categoryId}`);
+// 删除分类
+export function deleteCategory(id: string) {
+  return requestClient.delete<StandardResponse<null>>(`${API_PREFIX}/${id}`);
 }

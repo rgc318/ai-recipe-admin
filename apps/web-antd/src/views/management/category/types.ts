@@ -1,46 +1,34 @@
-// src/views/management/category/types.ts
-
-/**
- * @description 分类基础模型 (用于API响应)
- */
+// 这个接口的字段应该与后端 Pydantic 的 CategoryRead schema 完全匹配
 export interface CategoryRead {
-  id: string;
+  id: string; // UUID 在前端是字符串
   name: string;
   slug: string;
-  description: string | null;
-  parent_id: string | null;
+  description?: string | null;
+  parent_id?: string | null;
+  // 为了在表格中方便地显示父分类名称，可以让后端在返回列表时把 parent 对象也一并返回
+  parent?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
-/**
- * @description 包含子节点的分类模型 (用于树形结构)
- */
-export interface CategoryReadWithChildren extends CategoryRead {
-  children: CategoryReadWithChildren[];
-}
-
-/**
- * @description 创建新分类的请求体数据
- */
-export interface CategoryCreateData {
+// 与后端 Pydantic 的 CategoryCreate schema 匹配
+export interface CategoryCreate {
   name: string;
   slug: string;
   description?: string | null;
   parent_id?: string | null;
 }
 
-/**
- * @description 更新分类的请求体数据 (所有字段可选)
- */
-export type CategoryUpdateData = Partial<CategoryCreateData>;
+// 与后端 Pydantic 的 CategoryUpdate schema 匹配
+export interface CategoryUpdate {
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  parent_id?: string | null;
+}
 
-/**
- * @description 分类列表的查询参数
- */
-export interface CategoryListParams {
-  page?: number;
-  per_page?: number;
-  sort?: string;
-  name?: string; // 支持按名称模糊搜索
-  slug?: string; // 支持按slug精确搜索
-  parent_id?: string; // 支持按父ID搜索
+// 与后端 Pydantic 的 CategoryReadWithChildren schema 匹配 (用于树形选择器)
+export interface CategoryReadWithChildren extends CategoryRead {
+  children: CategoryReadWithChildren[];
 }

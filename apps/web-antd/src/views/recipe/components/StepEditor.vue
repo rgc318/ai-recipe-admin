@@ -33,18 +33,28 @@ const internalSteps = ref<DraggableStepItem[]>([]);
 // --- 核心逻辑 ---
 
 // 当父组件传入数据时，同步到内部状态
+// watch 1: 当父组件传入扁平数据时，转换为UI的嵌套分组列表
 watch(
   () => props.modelValue,
   (newValue) => {
-    const newSteps = (newValue || []).map(step => ({
-      ...step,
-      ui_id: uuidv4(), // 为每个步骤附加一个临时的UI ID
-    }));
-
-    // 只有当数据真的不一致时才更新，防止不必要的重渲染
-    if (JSON.stringify(internalSteps.value.map(s => ({...s, ui_id: ''}))) !== JSON.stringify(newSteps.map(s => ({...s, ui_id: ''})))) {
-      internalSteps.value = newSteps;
+    // 1. 增加一个“防御性”检查，防止无限循环
+    // 只有当父组件传入的数据和当前组件的纯数据不一致时，才进行更新
+    const currentPureSteps = internalSteps.value.map(({ ui_id, ...rest }) => rest);
+    if (JSON.stringify(newValue) === JSON.stringify(currentPureSteps)) {
+      return; // 数据已经同步，无需任何操作
     }
+
+    // 2. 核心修改：复用已存在的 ui_id，而不是每次都生成新的
+    internalSteps.value = (newValue || []).map((step, index) => {
+      // 尝试在当前内部列表的相同位置寻找已存在的步骤
+      const existingStep = internalSteps.value[index];
+
+      return {
+        ...step,
+        // 如果能找到，就复用它的 ui_id；如果找不到（说明是新增的步骤），才生成一个新的
+        ui_id: existingStep ? existingStep.ui_id : uuidv4(),
+      };
+    });
   },
   { immediate: true, deep: true },
 );

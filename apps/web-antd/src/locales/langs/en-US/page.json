@@ -15,7 +15,8 @@
     "title": "System Management",
     "user": "User Management",
     "role": "Role Management",
-    "permission": "Permission Management"
+    "permission": "Permission Management",
+    "category": "Category Management"
   },
   "content": {
     "title": "Content Management",
