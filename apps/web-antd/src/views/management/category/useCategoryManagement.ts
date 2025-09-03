@@ -18,6 +18,9 @@ export function useCategoryManagement() {
   const currentCategory = ref<Partial<CategoryRead>>({});
   const categoryStore = useCategoryStore();
 
+  const handleReset = () => {
+    searchText.value = '';
+  };
   async function fetchTreeData() {
     loading.value = true;
     try {
@@ -153,6 +156,7 @@ export function useCategoryManagement() {
     searchText,
     filteredTreeData,
     expandedKeys, // <-- 直接暴露简单的 ref
+    handleReset, // <-- 直接暴露简单的 ref
     modalVisible, modalLoading, modalTitle, currentCategory,
     fetchData: fetchTreeData,
     handleAddNew, handleAddChild, handleEdit, handleDelete, handleModalOk,

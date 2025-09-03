@@ -29,6 +29,7 @@ const {
   handleEdit,
   handleDelete,
   handleModalOk,
+  handleReset,
 } = useCategoryManagement();
 
 const columns: TableColumnType<CategoryRead>[] = [
@@ -69,7 +70,10 @@ onMounted(() => { fetchData(); });
     <Card :bordered="false" class="mb-4">
       <Form layout="inline">
         <FormItem label="分类名称">
-          <Input v-model:value="searchText" placeholder="按名称模糊搜索" allow-clear />
+          <Space>
+            <Input v-model:value="searchText" placeholder="按名称模糊搜索" allow-clear />
+            <Button @click="handleReset">重置</Button>
+          </Space>
         </FormItem>
       </Form>
     </Card>
