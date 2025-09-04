@@ -44,6 +44,7 @@
     "@vben/utils": "workspace:*",
     "@vueuse/core": "catalog:",
     "ant-design-vue": "catalog:",
+    "axios": "catalog:",
     "camelcase-keys": "^9.1.3",
     "dayjs": "catalog:",
     "lodash-es": "^4.17.21",

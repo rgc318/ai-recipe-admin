@@ -1,9 +1,14 @@
 import { ref } from 'vue';
 import { message } from 'ant-design-vue';
-import type { UserReadWithRoles, UserUpdateProfileData, UserChangePasswordData } from '#/views/management/user/types';
+import type {
+  UserReadWithRoles,
+  UserUpdateProfileData,
+  UserChangePasswordData,
+  AvatarLinkDTO
+} from '#/views/management/user/types';
 
 // 使用 # 别名导入 API 函数
-import { updateMyProfile, changeMyPassword, updateMyAvatar } from '#/api/profile/profile.ts';
+import { updateMyProfile, changeMyPassword, linkMyUploadedAvatar } from '#/api/profile/profile';
 import {getUserInfoApi} from "#/api";
 import {useAuthStore} from "#/store";
 
@@ -58,17 +63,26 @@ export function useProfileManagement() {
     }
   }
 
-  async function handleUpdateAvatar(file: File) {
-    loading.value = true;
-    try {
-      const updatedUser = await updateMyAvatar(file);
-      profileData.value = updatedUser;
-      message.success('头像更新成功！');
-    } catch (error) {
-      message.error('头像上传失败');
-    } finally {
-      loading.value = false;
-    }
+  // async function handleAvatarLink(avatarDto: AvatarLinkDTO) {
+  //   // 这个方法接收“登记”成功后的文件元数据，并将其与当前用户关联
+  //   loading.value = true;
+  //   try {
+  //     // 调用 UserService 中的 link_new_avatar 对应的 API
+  //     const updatedUser = await linkMyUploadedAvatar(avatarDto);
+  //
+  //     // 用后端返回的最新用户数据，更新本地状态
+  //     profileData.value = updatedUser;
+  //     message.success('头像更新成功！');
+  //   } catch (error) {
+  //     message.error('头像关联失败');
+  //   } finally {
+  //     loading.value = false;
+  //   }
+  // }
+
+
+  function syncProfileData(updatedUser: UserReadWithRoles) {
+    profileData.value = updatedUser;
   }
 
   return {
@@ -77,6 +91,6 @@ export function useProfileManagement() {
     fetchProfile,
     handleUpdateProfile,
     handleChangePassword,
-    handleUpdateAvatar,
+    syncProfileData,
   };
 }

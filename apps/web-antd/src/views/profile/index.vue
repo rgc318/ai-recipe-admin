@@ -11,7 +11,7 @@ const {
   fetchProfile,
   handleUpdateProfile,
   handleChangePassword,
-  handleUpdateAvatar,
+  syncProfileData, // <-- 【修改】获取新的方法名
 } = useProfileManagement();
 
 onMounted(() => {
@@ -32,7 +32,7 @@ onMounted(() => {
             :profile-data="profileData"
             :loading="loading"
             @update-profile="handleUpdateProfile"
-            @update-avatar="handleUpdateAvatar"
+            @profile-updated="syncProfileData"
           />
         </TabPane>
         <TabPane key="security" tab="安全设置">

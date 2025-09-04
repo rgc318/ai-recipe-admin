@@ -81,3 +81,4 @@ export function linkMyUploadedAvatar(data: AvatarLinkDTO) {
     data,
   );
 }
+
