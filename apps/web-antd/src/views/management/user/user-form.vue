@@ -49,11 +49,19 @@ const props = defineProps({
 });
 
 
+// ▼▼▼ 【1. 新增】用于存放本地预览图的URL ▼▼▼
+const localPreviewUrl = ref('');
+// ▲▲▲ 新增结束 ▲▲▲
+
 // --- 3. 为不同场景分别准备上传工具 ---
 // 场景一：“创建用户”时，使用通用的 uploader hook
 
-// --- 2. 准备加载状态 ---
-const isUploading = ref(false);
+const isUploading = ref(false)
+
+// --- 上传工具与状态 ---
+const { isUploading: isCreateUploading, customRequest: createModeUpload } = useUploader({
+  profile_name: 'user_avatars',
+});
 
 // --- 3. 表单状态与规则 ---
 const formRef = ref<FormInstance>();
@@ -169,6 +177,11 @@ const customRequest = async ({ file, onSuccess, onError, onProgress }: any) => {
     onError(error);
   } finally {
     isUploading.value = false;
+    // ▼▼▼ 【5. 新增】上传流程结束后，清空本地预览，让头像显示永久URL ▼▼▼
+    if (localPreviewUrl.value) {
+      URL.revokeObjectURL(localPreviewUrl.value);
+      localPreviewUrl.value = '';
+    }
   }
 };
 
@@ -208,6 +221,27 @@ async function handleSubmit() {
   }
 }
 
+// ▼▼▼ 【2. 新增】beforeUpload 函数，负责校验和生成预览 ▼▼▼
+const beforeUpload = (file: File) => {
+  // a. 校验文件类型和大小
+  const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/webp';
+  const isLt5M = file.size / 1024 / 1024 < 5; // 假设最大为 5MB
+  if (!isJpgOrPng || !isLt5M) {
+    message.error('请上传 5MB 以下的 JPG/PNG/WEBP 格式图片!');
+    return false; // 返回 false 会阻止上传
+  }
+
+  // b. 生成本地预览URL
+  // 如果之前已经有预览，先释放旧的URL以节省内存
+  if (localPreviewUrl.value) {
+    URL.revokeObjectURL(localPreviewUrl.value);
+  }
+  localPreviewUrl.value = URL.createObjectURL(file);
+
+  return true; // 允许上传继续
+};
+// ▲▲▲ 新增结束 ▲▲▲
+
 defineExpose({ handleSubmit });
 </script>
 
@@ -215,7 +249,7 @@ defineExpose({ handleSubmit });
   <AForm ref="formRef" :model="formState" :rules="rules" layout="vertical">
     <AFormItem label="用户头像" name="avatar">
       <div class="flex items-center">
-        <AAvatar :size="64" :src="formState.avatar_url">
+        <AAvatar :size="64" :src="localPreviewUrl || formState.avatar_url">
           <template #icon><UserOutlined /></template>
         </AAvatar>
         <AUpload
@@ -225,7 +259,7 @@ defineExpose({ handleSubmit });
           accept="image/png, image/jpeg, image/webp"
           :show-upload-list="false"
           :custom-request="customRequest"
-        >
+          :before-upload="beforeUpload" >
           <AButton :loading="isUploading">
             <UploadOutlined />
             {{ isUploading ? '上传中...' : '更换头像' }}
