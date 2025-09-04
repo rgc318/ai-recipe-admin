@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref, watch } from 'vue';
+import {computed, reactive, ref, watch} from 'vue';
 import {
   Form as AForm,
   FormItem as AFormItem,
@@ -13,9 +13,28 @@ import {
 import type { FormInstance, UploadProps } from 'ant-design-vue';
 import { UserOutlined, UploadOutlined } from '@ant-design/icons-vue'; // 【新增】导入图标
 // 【新增】导入新的API方法
-import { createUser, updateUser, adminUpdateUserAvatar, } from '#/api/management/users/user';
+import {
+  // 【移除】这个是旧的、将被废弃的直传接口
+  // adminUpdateUserAvatar,
 
-// --- 组件通信 (Props) ---
+  // 【新增】为管理员场景新增的两个预签名流程接口
+  adminGenerateAvatarUploadPolicy,
+  adminLinkUploadedAvatar,
+
+  createUser,
+  updateUser,
+} from '#/api/management/users/user';
+
+import {
+  generatePresignedUploadPolicy,     // 新增时使用
+  registerFile,                        // 新增时使用
+} from '#/api/management/files/file';
+
+import { useUploader } from '#/hooks/web/useUploader';
+import type { FileRecordRead } from '#/views/management/files/types'
+
+// 【新增】还需要一个 axios 实例来执行物理上传
+import axios from 'axios';
 
 // --- 组件通信 (Props & Emits) ---
 const props = defineProps({
@@ -29,7 +48,14 @@ const props = defineProps({
   },
 });
 
-// --- 表单状态与规则 ---
+
+// --- 3. 为不同场景分别准备上传工具 ---
+// 场景一：“创建用户”时，使用通用的 uploader hook
+
+// --- 2. 准备加载状态 ---
+const isUploading = ref(false);
+
+// --- 3. 表单状态与规则 ---
 const formRef = ref<FormInstance>();
 const formState = reactive({
   username: '',
@@ -39,143 +65,150 @@ const formState = reactive({
   phone: '',
   is_active: true,
   is_superuser: false,
-  role_ids: [], // 用来存储被选中的角色ID
-  avatar_url: '', // 【新增】用于存储和显示头像URL
+  role_ids: [] as string[],
+  avatar_url: '', // 用于UI预览
+  avatar_file_record_id: null as string | null, // 用于“新增”模式
 });
 
 const rules = {
   username: [{ required: true, message: '请输入用户名' }],
-  password: [
-    // 只有在新增模式下，密码才是必填的
-    { required: !props.userData, message: '请输入密码' },
-  ],
+  password: [{ required: !props.userData, message: '请输入密码' }],
   role_ids: [{ required: true, message: '请至少选择一个角色' }],
 };
 
-
-// 【新增】Upload组件的状态
-const fileList = ref<UploadProps['fileList']>([]);
-const uploading = ref(false);
-// --- 核心逻辑 ---
-
-// 使用 watch 监听 props.userData 的变化，当父组件传入数据时，自动填充表单
+// --- 4. 侦听器，用于填充/重置表单 ---
 watch(
   () => props.userData,
   (newUser) => {
     if (newUser) {
-      // ----------------------------------------------------
-      // 编辑模式：使用逐个字段赋值，确保响应性正确更新
-      formState.avatar_url = newUser.full_avatar_url || ''; // 使用 full_avatar_url 来显示
+      // 编辑模式
+      formState.avatar_url = newUser.full_avatar_url || '';
       formState.username = newUser.username;
       formState.full_name = newUser.full_name || '';
       formState.email = newUser.email || '';
       formState.phone = newUser.phone || '';
       formState.is_active = newUser.is_active;
       formState.is_superuser = newUser.is_superuser;
-
-      // 从用户对象中提取出角色的ID列表，用于Select的回显
-      formState.role_ids = newUser.roles?.map((role: any) => role.id) || [];
-
-      // 编辑模式下密码框默认为空，不回显密码
+      formState.role_ids = newUser.roles?.map((role) => role.id) || [];
       formState.password = '';
-      // ----------------------------------------------------
-      if (formState.avatar_url) {
-        fileList.value = [{
-          uid: '-1',
-          name: 'current_avatar.png',
-          status: 'done',
-          url: formState.avatar_url,
-        }];
-      } else {
-        fileList.value = [];
-      }
+      formState.avatar_file_record_id = null;
     } else {
-      // 新增模式：重置表单为初始状态
-      // formRef.value?.resetFields() 会重置校验状态和值
+      // 新增模式
       formRef.value?.resetFields();
-      // 确保我们的响应式对象也恢复默认
       Object.assign(formState, {
-        username: '',
-        password: '',
-        full_name: '',
-        email: '',
-        phone: '',
-        is_active: true,
-        is_superuser: false,
-        role_ids: [],
+        username: '', password: '', full_name: '', email: '', phone: '',
+        is_active: true, is_superuser: false, role_ids: [],
+        avatar_url: '', avatar_file_record_id: null,
       });
     }
   },
-  { immediate: true, deep: true }, // deep: true 可以在某些边缘情况下提供更可靠的侦听
+  { immediate: true, deep: true },
 );
 
-// 【新增】自定义上传逻辑
-const customRequest = async ({ file, onSuccess, onError }: any) => {
-  // 这个表单只用于管理员创建/编辑用户，所以我们只处理编辑场景
-  if (!props.userData) {
-    message.warn('请先创建用户，再在编辑模式下上传头像。');
-    onError?.(new Error('Cannot upload avatar in create mode.'));
-    return;
-  }
-  uploading.value = true;
+// --- 5. 【核心】统一的上传请求调度员 ---
+const customRequest = async ({ file, onSuccess, onError, onProgress }: any) => {
+  isUploading.value = true;
   try {
-    // 调用管理员专用的直接上传接口
-    const res = await adminUpdateUserAvatar(props.userData.id, file);
-
-    // 更新UI
-    formState.avatar_url = res.full_avatar_url || '';
-    message.success('头像更新成功！');
-    onSuccess?.(res);
-
-  } catch (error: any) {
-    message.error(`上传失败: ${error.message || '未知错误'}`);
-    onError?.(error);
-  } finally {
-    uploading.value = false;
-  }
-};
-
-// 限制只能上传一张图片
-// 【修复】将 info 的类型改为 any 来解决导入问题
-const handleChange = (info: any) => {
-  if (info && info.fileList) {
-    fileList.value = info.fileList.slice(-1);
-  }
-};
-
-
-// 暴露给父组件(UserDrawer)调用的方法
-async function handleSubmit() {
-  try {
-    await formRef.value?.validate(); // 触发表单校验
-
-    const params = { ...formState };
-    // 如果是编辑模式且密码为空，则不提交password字段
-    if (props.userData && !params.password) {
-      delete params.password;
+    let policy: any;
+    // --- 步骤 A: 根据模式，调用不同的策略生成接口 ---
+    if (props.userData) {
+      // 更新模式：调用管理员专用接口
+      const policyRes = await adminGenerateAvatarUploadPolicy(props.userData.id, {
+        original_filename: file.name,
+        content_type: file.type,
+      });
+      policy = policyRes;
+    } else {
+      // 新增模式：调用通用接口
+      const policyRes = await generatePresignedUploadPolicy({
+        original_filename: file.name,
+        content_type: file.type,
+        profile_name: 'general_files', // 明确指定 Profile
+      });
+      policy = policyRes;
     }
 
+    // --- 步骤 B: 物理上传文件到云 (通用逻辑) ---
+    const formData = new FormData();
+    Object.keys(policy.fields).forEach((key) => formData.append(key, policy.fields[key]));
+    formData.append('file', file);
+    await axios.post(policy.url, formData, {
+      onUploadProgress: (event) => {
+        if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
+      },
+    });
+
+    // --- 步骤 C: 根据模式，执行不同的后续操作 ---
     if (props.userData) {
-      // 编辑模式
+      // 更新模式：立即调用关联接口
+      const linkRes = await adminLinkUploadedAvatar(props.userData.id, {
+        object_name: policy.object_name,
+        original_filename: file.name,
+        content_type: file.type,
+        file_size: file.size,
+      });
+      formState.avatar_url = linkRes.full_avatar_url || '';
+      message.success('头像更新成功！');
+      onSuccess(linkRes);
+    } else {
+      // 新增模式：只登记文件，并暂存ID
+      const registerRes = await registerFile({
+        object_name: policy.object_name,
+        original_filename: file.name,
+        content_type: file.type,
+        file_size: file.size,
+        profile_name: 'user_avatars',
+      });
+      formState.avatar_file_record_id = registerRes.id;
+      formState.avatar_url = registerRes.url || '';
+      message.success('头像已上传并准备就绪');
+      onSuccess(registerRes);
+    }
+  } catch (error: any) {
+    message.error(`上传失败: ${error.message || '未知错误'}`);
+    onError(error);
+  } finally {
+    isUploading.value = false;
+  }
+};
+
+// --- 6. 表单提交逻辑 (现在完全兼容头像) ---
+async function handleSubmit() {
+  try {
+    await formRef.value?.validate();
+
+    // 拷贝一份干净的数据用于提交，而不是直接用 formState
+    const params: any = {
+      username: formState.username,
+      password: formState.password,
+      full_name: formState.full_name,
+      email: formState.email,
+      phone: formState.phone,
+      is_active: formState.is_active,
+      is_superuser: formState.is_superuser,
+      role_ids: formState.role_ids,
+    };
+
+    if (props.userData) {
+      if (!params.password) delete params.password;
       await updateUser(props.userData.id, params);
       message.success('更新成功');
     } else {
-      // 新增模式
+      if (formState.avatar_file_record_id) {
+        params.avatar_file_record_id = formState.avatar_file_record_id;
+      }
+      // 2. 调用创建接口
       await createUser(params);
       message.success('新增成功');
     }
-    return true; // 返回 true 表示成功
+    return true;
   } catch (error) {
     console.error('表单提交失败:', error);
-    // message.error(...) 会在全局请求拦截器中处理，这里可以不重复提示
-    return false; // 返回 false 表示失败
+    return false;
   }
 }
 
-// 将 handleSubmit 方法暴露出去
-defineExpose({
-  handleSubmit,
-});
+defineExpose({ handleSubmit });
 </script>
 
 <template>
@@ -186,18 +219,16 @@ defineExpose({
           <template #icon><UserOutlined /></template>
         </AAvatar>
         <AUpload
-          v-model:file-list="fileList"
           name="avatar"
           class="ml-4"
           :max-count="1"
           accept="image/png, image/jpeg, image/webp"
           :show-upload-list="false"
           :custom-request="customRequest"
-          @change="handleChange"
         >
-          <AButton :loading="uploading">
+          <AButton :loading="isUploading">
             <UploadOutlined />
-            {{ uploading ? '上传中...' : '更换头像' }}
+            {{ isUploading ? '上传中...' : '更换头像' }}
           </AButton>
         </AUpload>
       </div>

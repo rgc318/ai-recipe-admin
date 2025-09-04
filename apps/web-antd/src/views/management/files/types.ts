@@ -24,6 +24,12 @@ export interface PresignedUrlPayload {
   path_params?: Record<string, any>;
 }
 
+// 【新增】为安全的POST策略请求创建请求体类型
+export interface PresignedPolicyRequest {
+  original_filename: string;
+  content_type: string;
+}
+
 /**
  * @description 后端返回的“预签名上传URL”对象的数据模型。
  */
@@ -31,6 +37,15 @@ export interface PresignedUploadURL {
   upload_url: string; // 供前端直接上传文件到云存储的URL
   object_name: string; // 文件上传后在云存储中的唯一路径/键
   url: string; // 文件上传成功后的最终可访问URL
+}
+
+export interface PresignedUploadPolicy {
+  object_name: string;
+  original_filename: string;
+  content_type: string;
+  file_size: number;
+  profile_name: string;
+  etag?: string | null;
 }
 
 /**

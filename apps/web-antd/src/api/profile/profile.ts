@@ -3,13 +3,19 @@
 import type {
   // --- 复用已有的类型 ---
   UserReadWithRoles,
-  PresignedPolicyRequest,
-  PresignedUploadPolicy,
   AvatarLinkDTO,
   // --- 需要在 types.ts 中新增的类型 ---
   UserUpdateProfileData,
   UserChangePasswordData,
-} from '#/views/management/user/types'; // 假设类型都定义在这里
+} from '#/views/management/user/types';
+
+import type {
+  // --- 复用已有的类型 ---
+
+  PresignedPolicyRequest,
+  PresignedUploadPolicy,
+
+} from '#/views/management/files/types';
 
 import { requestClient } from '#/api/request';
 import type { StandardResponse } from '#/api/types';

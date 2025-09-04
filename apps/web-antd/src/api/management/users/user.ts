@@ -2,7 +2,6 @@
 
 import type {
   AvatarLinkDTO,
-  PresignedPolicyRequest, PresignedUploadPolicy,
   UserCreateData,
   UserItem,
   UserListParams,
@@ -10,6 +9,11 @@ import type {
   UserUpdateData
 } from '#/views/management/user/types';
 
+import type {
+  PresignedPolicyRequest,
+  PresignedUploadPolicy,
+
+} from '#/views/management/files/types';
 import { requestClient } from '#/api/request';
 import type { StandardResponse, PageResponse } from '#/api/types';
 
@@ -38,6 +42,30 @@ export function linkUploadedAvatar(data: AvatarLinkDTO) {
   );
 }
 
+
+/**
+ * @description 【管理员】为指定用户生成头像上传策略 (新模式)
+ * @param userId 目标用户的UUID
+ * @param data 包含文件名和文件类型的对象
+ */
+export function adminGenerateAvatarUploadPolicy(userId: string, data: PresignedPolicyRequest) {
+  return requestClient.post<StandardResponse<PresignedUploadPolicy>>(
+    `${API_PREFIX}/${userId}/avatar/generate-upload-policy`,
+    data,
+  );
+}
+
+/**
+ * @description 【管理员】关联已上传的头像到指定用户 (新模式)
+ * @param userId 目标用户的UUID
+ * @param data 包含所有文件元数据的对象
+ */
+export function adminLinkUploadedAvatar(userId: string, data: AvatarLinkDTO) {
+  return requestClient.patch<StandardResponse<UserReadWithRoles>>(
+    `${API_PREFIX}/${userId}/avatar/link-uploaded-file`,
+    data,
+  );
+}
 
 /**
  * @description 获取用户列表
@@ -128,3 +156,5 @@ export function batchDeleteUsers(data: { user_ids: string[] }) {
 export function getUserDetails(userId: string) {
   return requestClient.get<StandardResponse<UserReadWithRoles>>(`${API_PREFIX}/${userId}`);
 }
+
+

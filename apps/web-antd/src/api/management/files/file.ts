@@ -1,13 +1,15 @@
 import { requestClient } from '#/api/request';
-import type { PageResponse } from '#/api/types';
+import type {PageResponse, StandardResponse} from '#/api/types';
 import type {
   FileRecordRead,
   FileRecordUpdate,
   FileFilterParams, // 1. 【推荐】导入筛选类型，让参数更安全
   PresignedUrlPayload,
+  PresignedPolicyRequest,
   PresignedUploadURL,
+  PresignedUploadPolicy,
   RegisterFilePayload,
-} from '#/views/management/files/types'; // 确保类型路径正确
+} from '#/views/management/files/types';
 
 const API_PREFIX = '/file';
 const MANAGEMENT_PREFIX = '/file-management';
@@ -18,6 +20,14 @@ const MANAGEMENT_PREFIX = '/file-management';
 
 export function getPresignedUploadUrl(payload: PresignedUrlPayload) {
   return requestClient.post<PresignedUploadURL>(`${API_PREFIX}/presigned-url/put`, payload);
+}
+
+/**
+ * @description 【安全模式-推荐】按 Profile 生成用于上传的预签名 POST 策略 (通用)
+ * @param payload 包含 profile_name, original_filename, content_type 等的对象
+ */
+export function generatePresignedUploadPolicy(payload: PresignedPolicyRequest) {
+  return requestClient.post<PresignedUploadPolicy>(`${API_PREFIX}/presigned-url/policy`, payload);
 }
 
 export function registerFile(payload: RegisterFilePayload) {
