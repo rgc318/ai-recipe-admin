@@ -15,6 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['updateProfile', 'profileUpdated']);
 const isUploading = ref(false); // 使用本地的 isUploading 状态
+const localPreviewUrl = ref(''); // <-- 【新增】用于存放本地预览图的URL
 
 const formState = reactive({
   username: '',
@@ -85,15 +86,23 @@ const onAvatarUpload = async ({ file, onSuccess, onError, onProgress }) => {
     onError(error);
   } finally {
     isUploading.value = false;
+    // 清空它，让<img>标签的src回退到由formState提供的永久URL
+    localPreviewUrl.value = '';
   }
 };
 
 const beforeUpload = (file: File) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
-  const isLt2M = file.size / 1024 / 1024 < 2;
+  const isLt2M = file.size / 1024 / 1024 < 5;
   if (!isJpgOrPng || !isLt2M) {
-    message.error('请上传 2MB 以下的 JPG/PNG 格式图片!');
+    message.error('请上传 5MB 以下的 JPG/PNG 格式图片!');
+    return false; // 校验失败，阻止上传
   }
+  if (localPreviewUrl.value) {
+    URL.revokeObjectURL(localPreviewUrl.value);
+  }
+  localPreviewUrl.value = URL.createObjectURL(file);
+
   return isJpgOrPng && isLt2M;
 };
 </script>
@@ -132,7 +141,12 @@ const beforeUpload = (file: File) => {
           :before-upload="beforeUpload"
           :custom-request="onAvatarUpload"
         >
-          <img v-if="formState.full_avatar_url" :src="formState.full_avatar_url" alt="avatar" class="w-full h-full object-cover" />
+          <img
+            v-if="localPreviewUrl || formState.full_avatar_url"
+            :src="localPreviewUrl || formState.full_avatar_url"
+            alt="avatar"
+            class="w-full h-full object-cover"
+          />
           <div v-else>
             <LoadingOutlined v-if="isUploading" />
             <PlusOutlined v-else />
