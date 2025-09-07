@@ -1,72 +1,55 @@
+// 文件: src/hooks/web/useUploader.ts
 import { ref } from 'vue';
 import { message } from 'ant-design-vue';
-import axios, { isAxiosError } from 'axios'; // 1. 【优化】导入 isAxiosError
-import { getPresignedUploadUrl, registerFile } from '#/api/management/files/file'; // 确保API路径正确
-import type { FileRecordRead } from '#/views/management/files/types'; // 2. 【优化】明确导入类型
+import axios from 'axios';
+import { generatePresignedUploadPolicy, registerFile } from '#/api/management/files/file';
+import type { FileRecordRead } from '#/views/management/files/types';
 
-// 3. 【优化】为 antd 的 customRequest 参数定义精确的类型
-interface UploadRequestOptions {
-  file: File;
-  onSuccess: (body: FileRecordRead) => void;
-  onError: (err: Error) => void;
-  onProgress: (event: { percent: number }) => void;
-}
-
-// 定义 Hook 的输入参数
 interface UploaderOptions {
-  profile_name: string;
-  path_params?: Record<string, any>;
+  profileName: string;
 }
 
 export function useUploader(options: UploaderOptions) {
   const isUploading = ref(false);
 
-  const customRequest = async ({ file, onSuccess, onError, onProgress }: UploadRequestOptions) => {
+  // 这是我们通用的“预上传”+“临时-正式”模式的核心实现
+  const customRequest = async ({ file, onSuccess, onError, onProgress }: any) => {
     isUploading.value = true;
     try {
-      const presignedResponse = await getPresignedUploadUrl({
-        profile_name: options.profile_name,
+      // 1. 获取上传策略 (总是指向 tmp/ 目录)
+      const policy = await generatePresignedUploadPolicy({
         original_filename: file.name,
-        path_params: options.path_params || {},
+        content_type: file.type,
+        profile_name: options.profileName,
       });
-      const { upload_url, object_name } = presignedResponse;
 
-      const response = await axios.put(upload_url, file, {
-        headers: { 'Content-Type': file.type },
+      // 2. 物理上传文件到云
+      const formData = new FormData();
+      Object.keys(policy.fields).forEach((key) => formData.append(key, policy.fields[key]));
+      formData.append('file', file);
+      await axios.post(policy.url, formData, {
         onUploadProgress: (event) => {
-          if (event.total) {
-            const percent = Math.round((event.loaded * 100) / event.total);
-            onProgress({ percent });
-          }
+          if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
         },
       });
 
-      const etag = response.headers.etag?.replace(/"/g, '');
-
-      const fileRecord = await registerFile({
-        object_name: object_name,
+      // 3. 登记文件，获取 file_record_id
+      const registeredFile: FileRecordRead = await registerFile({
+        object_name: policy.object_name,
         original_filename: file.name,
         content_type: file.type,
         file_size: file.size,
-        profile_name: options.profile_name,
-        etag: etag,
+        profile_name: options.profileName,
       });
 
-      onSuccess(fileRecord);
+      // 4. 通过 onSuccess 将完整的 FileRecordRead 对象返回给调用方
+      onSuccess(registeredFile);
+      return registeredFile;
 
     } catch (error: any) {
-      console.error('上传流程失败:', error);
-
-      // 4. 【优化】尝试从 axios 错误中提取更具体的后端信息
-      let errorMessage = '上传失败，请重试';
-      if (isAxiosError(error) && error.response?.data?.message) {
-        errorMessage = `上传失败: ${error.response.data.message}`;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-
-      message.error(errorMessage);
+      message.error(`上传失败: ${error.message || '未知错误'}`);
       onError(error);
+      throw error;
     } finally {
       isUploading.value = false;
     }

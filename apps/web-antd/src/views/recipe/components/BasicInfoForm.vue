@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, h, computed } from 'vue';
+import {ref, h, computed, watch, onUnmounted} from 'vue';
 import {
   Form,
   FormItem,
@@ -14,19 +14,37 @@ import {
   type UploadFile,
   type UploadChangeParam,
 } from 'ant-design-vue';
-import { UploadOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { LoadingOutlined, UploadOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { storeToRefs } from 'pinia';
 import { debounce } from 'lodash-es';
-
+import { useUploader } from '#/hooks/web/useUploader'; // 导入我们新的 Hook
+import type { FileRecordRead } from '#/views/management/files/types';
 import { useRecipeReferenceStore } from '#/store/modules/recipeReference';
 import { searchTags } from '#/api/recipes/tag';
-import type { TagRead, RecipeCreateData, FileRecordRead } from '../types';
+import type { TagRead, RecipeCreateData } from '../types';
 
-// --- 组件通信: v-model ---
+// 【新增】导入你的通用上传API
+import { generatePresignedUploadPolicy, registerFile } from '#/api/management/files/file';
+// 【新增】导入 axios 用于物理上传
+import axios from 'axios';
+
+// --- 【核心修改】初始化上传器 ---
+// --- 初始化上传器 (不依赖 props, 位置可以不变) ---
+const isCoverUploading = ref(false);
+const isGalleryUploading = ref(false); // 如果画廊图也用此逻辑，则需要
+
+// --- 【核心修改】为封面图和画廊图准备本地预览状态 ---
+const coverPreviewUrl = ref('');
+const galleryFileList = ref<UploadFile[]>([]); // 完全接管 antd Upload 的 fileList
+
+// --- 组件通信 ---
 const props = defineProps<{
   modelValue: RecipeCreateData;
+  isCreateMode: boolean; // <-- 【新增】接收 prop
+  recipeId: string;      // <-- 【新增】接收 prop
 }>();
 const emit = defineEmits(['update:modelValue']);
+
 
 // --- 使用 computed 属性代理 v-model ---
 const formState = computed({
@@ -35,6 +53,159 @@ const formState = computed({
     emit('update:modelValue', value);
   },
 });
+
+
+
+// --- 【核心修改】通用的 beforeUpload (包含即时预览逻辑) ---
+const beforeUpload = (file: File, isCover: boolean = false) => {
+  const isJpgOrPng = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+  const isLt10M = file.size / 1024 / 1024 < 10;
+  if (!isJpgOrPng || !isLt10M) {
+    message.error('请上传 10MB 以下的 JPG/PNG/WEBP 格式图片!');
+    return false;
+  }
+
+  // 为封面图生成单独的预览
+  if (isCover) {
+    if (coverPreviewUrl.value) URL.revokeObjectURL(coverPreviewUrl.value);
+    coverPreviewUrl.value = URL.createObjectURL(file);
+  }
+
+  return true;
+};
+
+
+// --- 【核心修改】封面上传逻辑 ---
+const handleCoverChange = (info: UploadChangeParam) => {
+  if (info.file.status === 'done') {
+    const fileRecord = info.file.response as FileRecordRead;
+    formState.value.cover_image_id = fileRecord.id;
+    message.success(`封面 [${info.file.name}] 上传成功`);
+    // 上传成功后，清空本地预览，让预览图指向真实的（临时）URL
+    if (coverPreviewUrl.value) URL.revokeObjectURL(coverPreviewUrl.value);
+    coverPreviewUrl.value = '';
+    // 同时更新封面图对象，以便预览
+    formState.value.cover_image = fileRecord;
+  } else if (info.file.status === 'error') {
+    message.error(`封面 [${info.file.name}] 上传失败`);
+  }
+}
+
+// 封面图的 customRequest
+const coverCustomRequest = async ({ file, onSuccess, onError, onProgress }: any) => {
+  isCoverUploading.value = true;
+  try {
+    // --- 步骤 A: 根据模式，调用不同的策略生成接口 ---
+    const policyRes = await generatePresignedUploadPolicy({
+      original_filename: file.name,
+      content_type: file.type,
+      // 【关键】如果是创建模式，使用通用配置；如果是编辑模式，使用专用配置
+      profile_name: props.isCreateMode ? 'general_files' : 'recipe_images',
+      // 【关键】如果是编辑模式，传递 recipe_id
+      path_params: props.isCreateMode ? undefined : { recipe_id: props.recipeId },
+    });
+    const policy = policyRes;
+
+    // --- 步骤 B: 物理上传文件到云 (通用逻辑) ---
+    const formData = new FormData();
+    Object.keys(policy.fields).forEach((key) => formData.append(key, policy.fields[key]));
+    formData.append('file', file);
+
+    await axios.post(policy.url, formData, {
+      onUploadProgress: (event) => {
+        if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
+      },
+    });
+
+    // --- 步骤 C: 根据模式，执行不同的后续操作 ---
+    if (props.isCreateMode) {
+      // 创建模式：只登记文件，并暂存文件记录ID
+      const registerRes = await registerFile({
+        object_name: policy.object_name,
+        original_filename: file.name,
+        content_type: file.type,
+        file_size: file.size,
+        // 【注意】这里登记时，可以告诉后端这个文件最终要用于哪个 profile
+        profile_name: 'recipe_images',
+      });
+
+
+      message.success('封面图已准备就绪');
+      onSuccess(registerRes);
+
+      // 【保留】本地预览的清理逻辑可以放在这里
+      if (coverPreviewUrl.value) URL.revokeObjectURL(coverPreviewUrl.value);
+      coverPreviewUrl.value = '';
+    } else {
+      // 编辑模式：由于后端策略已经将文件直接传到正确位置，
+      // 我们只需要一个文件记录来更新UI即可。
+      // (这个逻辑可能需要根据你的后端实现微调，这里假设和创建模式类似)
+      const registerRes = await registerFile({
+        object_name: policy.object_name,
+        original_filename: file.name,
+        content_type: file.type,
+        file_size: file.size,
+        profile_name: 'recipe_images',
+      });
+
+      message.success('封面图更新成功！');
+      onSuccess(registerRes);
+    }
+  } catch (error: any) {
+    message.error(`上传失败: ${error.message || '未知错误'}`);
+    onError(error);
+  } finally {
+    isCoverUploading.value = false;
+    // ... 清理本地预览的逻辑 ...
+  }
+};
+
+
+
+const galleryCustomRequest = async ({ file, onSuccess, onError, onProgress }: any) => {
+  isGalleryUploading.value = true;
+  try {
+    // 【这里的逻辑和 coverCustomRequest 完全一样】
+    const policyRes = await generatePresignedUploadPolicy({
+      original_filename: file.name,
+      content_type: file.type,
+      profile_name: props.isCreateMode ? 'general_files' : 'recipe_images',
+      path_params: props.isCreateMode ? undefined : { recipe_id: props.recipeId },
+    });
+    const policy = policyRes;
+
+    const formData = new FormData();
+    Object.keys(policy.fields).forEach((key) => formData.append(key, policy.fields[key]));
+    formData.append('file', file);
+
+    await axios.post(policy.url, formData, {
+      onUploadProgress: (event) => {
+        if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
+      },
+    });
+
+    // 【这里的逻辑不同】
+    // 对于画廊，我们不需要在 customRequest 内部直接修改 formState。
+    // 我们只需要注册文件，然后把成功的结果通过 onSuccess 传出去，
+    // 让 handleGalleryChange 函数去负责更新 fileList 和 formState。
+    const registerRes = await registerFile({
+      object_name: policy.object_name,
+      original_filename: file.name,
+      content_type: file.type,
+      file_size: file.size,
+      profile_name: 'recipe_images',
+    });
+
+    // 把后端返回的完整文件信息传递给 antd Upload 组件
+    onSuccess(registerRes);
+
+  } catch (error: any) {
+    message.error(`上传失败: ${error.message || '未知错误'}`);
+    onError(error);
+  } finally {
+    isGalleryUploading.value = false;
+  }
+};
 
 // --- 状态与逻辑 ---
 const tagOptions = ref<TagRead[]>([]);
@@ -75,54 +246,38 @@ const handleTagSearch = debounce(async (query: string) => {
   }
 }, 300);
 
-// 封面上传逻辑
-function handleCoverUpload(info: UploadChangeParam) {
-  if (info.file.status === 'done') {
-    const fileRecord = info.file.response?.data as FileRecordRead;
-    if (fileRecord?.id) {
-      formState.value.cover_image_id = fileRecord.id;
-      message.success(`封面 [${info.file.name}] 上传成功`);
-    } else {
-      message.error('上传成功，但未返回有效的图片ID');
-    }
-  } else if (info.file.status === 'error') {
-    message.error(`封面 [${info.file.name}] 上传失败`);
-  }
-}
+// --- 【核心修改】画廊图片上传/删除逻辑 ---
+const handleGalleryChange = ({ fileList }: UploadChangeParam) => {
+  // antd 的 onChange 会在成功、失败、删除时都触发
+  // 我们直接用当前的 fileList 来同步我们的 ID 列表
+  galleryFileList.value = fileList; // 更新本地 fileList
 
-// 【新增】画廊图片上传/删除逻辑
-function handleGalleryChange({ file, fileList }: UploadChangeParam) {
-  if (file.status === 'done') {
-    const fileRecord = file.response?.data as FileRecordRead;
-    if (!fileRecord?.id) {
-      message.error('上传成功，但未返回有效的图片ID');
-      // 将上传失败的文件从列表中移除
-      fileList.pop();
-    }
-    message.success(`图片 [${file.name}] 上传成功`);
-  } else if (file.status === 'error') {
-    message.error(`图片 [${file.name}] 上传失败`);
-  }
-
-  // 无论成功、失败还是删除，都根据当前的 fileList 重新生成 ID 列表
   const newImageIds: string[] = fileList
-    .map(f => f.response?.data?.id || f.uid) // 优先用新上传的ID，否则用已存在的ID (uid)
-    .filter(id => !!id);
+    .map(f => f.response?.id || f.uid) // response 是我们 customRequest 中 onSuccess 返回的
+    .filter((id): id is string => !!id);
 
   formState.value.gallery_image_ids = newImageIds;
 }
 
-// 【新增】将图片ID映射为 antd Upload 组件需要的 fileList 格式
-// TODO: 为了预览，你可能需要一个API，能根据ID列表批量获取文件的URL
-function mapIdsToFileList(image_ids: string[] = []): UploadFile[] {
-  return image_ids.map(id => ({
-    uid: id,
-    name: `image_${id.substring(0, 6)}.jpg`,
-    status: 'done',
-    url: ``, // 留空或指向一个默认的“加载中”图片
-  }));
-}
 
+
+
+// --- 侦听器：当外部数据加载完成时，初始化 fileList ---
+watch(() => props.modelValue.gallery_images, (newImages) => {
+  galleryFileList.value = newImages?.map(img => ({
+    uid: img.id,
+    name: img.original_filename,
+    status: 'done',
+    url: img.url,
+    response: { data: img }, // 假设 response 结构是 { data: FileRecordRead }
+  })) || [];
+}, { immediate: true, deep: true }); // deep: true 确保数组内部变化也能被侦测到
+
+onUnmounted(() => {
+  if (coverPreviewUrl.value) {
+    URL.revokeObjectURL(coverPreviewUrl.value);
+  }
+});
 </script>
 
 <template>
@@ -188,15 +343,20 @@ function mapIdsToFileList(image_ids: string[] = []): UploadFile[] {
     <FormItem label="封面图片" name="cover_image_id">
       <Upload
         name="file"
+        list-type="picture-card"
+        class="avatar-uploader"
         :show-upload-list="false"
-        action="/api/v1/files/upload?profile=recipes"
-        @change="handleCoverUpload"
+        :before-upload="(file) => beforeUpload(file, true)"
+        :custom-request="coverCustomRequest"
+        @change="handleCoverChange"
       >
-        <Button :icon="h(UploadOutlined)">上传封面</Button>
+        <img v-if="coverPreviewUrl || formState.cover_image?.url" :src="coverPreviewUrl || formState.cover_image.url" alt="封面" class="w-full h-full object-cover" />
+        <div v-else>
+          <LoadingOutlined v-if="isCoverUploading" />
+          <PlusOutlined v-else />
+          <div class="ant-upload-text mt-2">上传封面</div>
+        </div>
       </Upload>
-      <p v-if="formState.cover_image_id" class="text-gray-500 text-sm mt-2">
-        当前封面ID: {{ formState.cover_image_id }}
-      </p>
     </FormItem>
 
     <FormItem label="画廊图片" name="gallery_image_ids">
@@ -204,8 +364,9 @@ function mapIdsToFileList(image_ids: string[] = []): UploadFile[] {
         name="file"
         multiple
         list-type="picture-card"
-        action="/api/v1/files/upload?profile=recipes"
-        :file-list="mapIdsToFileList(formState.gallery_image_ids)"
+        :file-list="galleryFileList"
+        :before-upload="(file) => beforeUpload(file, false)"
+        :custom-request="galleryCustomRequest"
         @change="handleGalleryChange"
       >
         <div>

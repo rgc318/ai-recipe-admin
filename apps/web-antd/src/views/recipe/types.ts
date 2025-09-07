@@ -1,12 +1,8 @@
 // src/views/management/recipe/types.ts
 
 // --- 基础实体 ---
-export interface FileRecordRead {
-  id: string;
-  url: string;
-  original_filename: string;
-  content_type: string;
-}
+
+import type {FileRecordRead} from "#/views/management/files/types";
 
 export interface TagRead {
   id: string;
@@ -117,6 +113,10 @@ export interface RecipeCreateData {
   ingredients?: RecipeIngredientInput[]; // 内部已更新
   category_ids?: string[];
   tags?: (string | { id: string; name: string })[];
+  cover_image?: null ;
+  gallery_images?: null;
+  gallery_images_to_add?: null;
+  gallery_images_to_delete?: null;
 }
 
 // 用于更新菜谱 (对应 RecipeUpdate Pydantic Schema)

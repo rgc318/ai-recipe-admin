@@ -7,51 +7,139 @@ import {
   Card,
   message,
   type UploadFile,
-  type UploadChangeParam,
+  type UploadChangeParam, // 虽然 handleImageChange 删除了，但类型可能仍有用，可酌情保留或删除
 } from 'ant-design-vue';
 import { PlusOutlined, DeleteOutlined, HolderOutlined, ClockCircleOutlined } from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import { v4 as uuidv4 } from 'uuid';
+import { useUploader } from '#/hooks/web/useUploader';
 
 // 1. 【核心】导入正确的类型
-import type { RecipeStepInput, FileRecordRead } from '../types';
+import type { RecipeStepInput} from '../types';
+import type {FileRecordRead} from "#/views/management/files/types";
+import {generatePresignedUploadPolicy, registerFile} from "#/api/management/files/file";
+import axios from "axios";
 
+
+// --- 类型定义 ---
 // 为UI列表项添加一个唯一ID，用于v-for的key
 interface DraggableStepItem extends RecipeStepInput {
   ui_id: string;
+  images?: UploadFile[]; // 明确 UI 层面使用的 images 类型
 }
+
+// --- 1. 定义所有 state (状态) ---
+const stepUploaders = ref<Record<string, { customRequest: Function }>>({});
+const internalSteps = ref<DraggableStepItem[]>([]);
 
 // --- 组件通信 (v-model) ---
 const props = defineProps<{
   modelValue: RecipeStepInput[];
+  isCreateMode: boolean; // <-- 【新增】
+  recipeId: string;      // <-- 【新增】
 }>();
 const emit = defineEmits(['update:modelValue']);
 
-// --- 内部状态 ---
-const internalSteps = ref<DraggableStepItem[]>([]);
+
+// 为每一个步骤的上传器创建一个映射
+// key 是步骤的 ui_id, value 是一个 uploader 实例
+
+// 【核心改造】为每一个步骤创建包含条件化逻辑的 uploader
+watch(internalSteps, (steps) => {
+  steps.forEach(step => {
+    if (!stepUploaders.value[step.ui_id]) {
+      // 为每个步骤创建一个专属的 customRequest 函数
+      const customRequestForStep = async ({ file, onSuccess, onError, onProgress }: any) => {
+        try {
+          // 步骤 A: 根据模式，获取上传策略
+          const policyRes = await generatePresignedUploadPolicy({
+            original_filename: file.name,
+            content_type: file.type,
+            profile_name: props.isCreateMode ? 'general_files' : 'recipe_images',
+            path_params: props.isCreateMode ? undefined : { recipe_id: props.recipeId },
+          });
+          const policy = policyRes;
+
+          // 步骤 B: 物理上传
+          const formData = new FormData();
+          Object.keys(policy.fields).forEach((key) => formData.append(key, policy.fields[key]));
+          formData.append('file', file);
+          await axios.post(policy.url, formData, {
+            onUploadProgress: (event) => {
+              if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
+            },
+          });
+
+          // 步骤 C: 登记文件
+          const registerRes = await registerFile({
+            object_name: policy.object_name,
+            original_filename: file.name,
+            content_type: file.type,
+            file_size: file.size,
+            profile_name: 'recipe_images',
+          });
+
+          // 【关键】调用 onSuccess 将结果传给 Antd Upload 组件
+          // Upload 组件会自动更新 fileList，后续的响应式流程会自动处理
+          onSuccess(registerRes);
+          message.success(`步骤图片 [${file.name}] 上传成功`);
+
+        } catch (error: any) {
+          message.error(`图片上传失败: ${error.message || '未知错误'}`);
+          onError(error);
+        }
+      };
+
+      stepUploaders.value[step.ui_id] = {
+        customRequest: customRequestForStep,
+      };
+    }
+  });
+}, { deep: true, immediate: true });
+
+// 通用的 beforeUpload
+const beforeUpload = (file: File) => {
+  const isJpgOrPng = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+  const isLt10M = file.size / 1024 / 1024 < 10;
+  if (!isJpgOrPng || !isLt10M) {
+    message.error('请上传 10MB 以下的 JPG/PNG/WEBP 格式图片!');
+    return false;
+  }
+  return true;
+};
+
+
 
 // --- 核心逻辑 ---
 
-// 当父组件传入数据时，同步到内部状态
-// watch 1: 当父组件传入扁平数据时，转换为UI的嵌套分组列表
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    // 1. 增加一个“防御性”检查，防止无限循环
-    // 只有当父组件传入的数据和当前组件的纯数据不一致时，才进行更新
-    const currentPureSteps = internalSteps.value.map(({ ui_id, ...rest }) => rest);
+// 将服务端的图片数据结构映射为 Ant Design Upload 组件需要的 fileList 结构
+function mapImagesToUploadFileList(images: FileRecordRead[] = []): UploadFile[] {
+  return images.map(img => ({
+    uid: img.id,
+    name: img.original_filename || `image_${img.id}`,
+    status: 'done',
+    url: img.url,
+    response: { id: img.id }, // 响应中包含id，方便后续提取
+  }));
+}
+
+// 侦听器: 同步父组件传入的数据
+watch(() => props.modelValue, (newValue) => {
+    const currentPureSteps = internalSteps.value.map(({ ui_id, images, ...rest }) => ({
+      ...rest,
+      image_ids: images?.map(file => file.response?.id || file.uid).filter(id => id) || [],
+    }));
+
     if (JSON.stringify(newValue) === JSON.stringify(currentPureSteps)) {
-      return; // 数据已经同步，无需任何操作
+      return;
     }
 
-    // 2. 核心修改：复用已存在的 ui_id，而不是每次都生成新的
     internalSteps.value = (newValue || []).map((step, index) => {
-      // 尝试在当前内部列表的相同位置寻找已存在的步骤
       const existingStep = internalSteps.value[index];
-
+      const initialFileList = mapImagesToUploadFileList(step.images);
       return {
         ...step,
-        // 如果能找到，就复用它的 ui_id；如果找不到（说明是新增的步骤），才生成一个新的
+        images: initialFileList,
         ui_id: existingStep ? existingStep.ui_id : uuidv4(),
       };
     });
@@ -59,18 +147,22 @@ watch(
   { immediate: true, deep: true },
 );
 
-// 使用一个 deep watcher 自动将任何变更通知给父组件
-watch(
-  internalSteps,
-  (newValue) => {
-    // 在通知父组件前，移除临时的 ui_id 属性
-    const pureSteps = newValue.map(({ ui_id, ...rest }) => rest);
+// 侦听器: 将内部状态的变更通知给父组件
+watch(internalSteps, (newValue) => {
+    const pureSteps: RecipeStepInput[] = newValue.map(({ ui_id, images, ...rest }) => ({
+      ...rest,
+      image_ids: images?.map(file => {
+        return file.response?.id || file.uid;
+      }).filter((id): id is string => !!id) || [],
+    }));
+
     if (JSON.stringify(props.modelValue) !== JSON.stringify(pureSteps)) {
       emit('update:modelValue', pureSteps);
     }
   },
   { deep: true },
 );
+
 
 // 添加一个空的步骤
 function addStep() {
@@ -79,52 +171,28 @@ function addStep() {
     instruction: '',
     duration: null,
     image_ids: [],
+    images: [], // 【已修正】确保新对象数据结构完整
   });
 }
 
 // 移除一个步骤
 function removeStep(index: number) {
+  // 在 splice 之前获取要被删除的步骤的 ui_id
+  const stepToRemove = internalSteps.value[index];
+  if (stepToRemove) {
+    // 清理与该步骤关联的 uploader 实例，防止内存泄漏
+    delete stepUploaders.value[stepToRemove.ui_id];
+  }
   internalSteps.value.splice(index, 1);
 }
 
-// 处理图片上传与删除
-function handleImageChange(info: UploadChangeParam, step: DraggableStepItem) {
-  const newImageIds: string[] = info.fileList
-    .map((file) => {
-      if (file.status === 'done') {
-        // 新上传的文件，从 response 获取 ID
-        return file.response?.data?.id || file.uid;
-      }
-      // 已存在的文件，直接使用它的 uid (我们在 mapIdsToFileList 中设置了)
-      return file.uid;
-    })
-    .filter((id): id is string => !!id);
+// 【已移除】 handleImageChange 和 mapStepImagesToFileList 函数已被删除，因为它们是冗余的。
 
-  step.image_ids = newImageIds;
-}
-
-// 将 image_ids 映射为 antd Upload 组件需要的 fileList 格式
-function mapIdsToFileList(image_ids: string[] = []): UploadFile[] {
-  return image_ids.map(id => ({
-    uid: id,
-    name: `图片_${id.substring(0, 6)}`,
-    status: 'done',
-    url: '', // TODO: 需要一个API根据ID批量获取预览URL
-  }));
-}
 </script>
 
 <template>
   <div class="step-editor">
     <draggable v-model="internalSteps" :item-key="'ui_id'" handle=".drag-handle" class="space-y-4">
-
-<!--      <template #header>-->
-<!--        &lt;!&ndash; 空插槽，不做任何事情 &ndash;&gt;-->
-<!--      </template>-->
-<!--      <template #footer>-->
-<!--        &lt;!&ndash; 空插槽，不做任何事情 &ndash;&gt;-->
-<!--      </template>-->
-
       <template #item="{ element: step, index }">
         <Card>
           <div class="flex gap-4">
@@ -156,16 +224,17 @@ function mapIdsToFileList(image_ids: string[] = []): UploadFile[] {
               <div class="mt-4">
                 <p class="font-semibold mb-2 text-gray-600">步骤图片 (可上传多张)</p>
                 <Upload
+                  v-if="stepUploaders[step.ui_id]"
                   name="file"
-                  action="/api/v1/files/upload?profile=recipes"
                   list-type="picture-card"
                   multiple
-                  :file-list="mapIdsToFileList(step.image_ids)"
-                  @change="(info) => handleImageChange(info, step)"
+                  v-model:file-list="step.images"
+                  :before-upload="beforeUpload"
+                  :custom-request="stepUploaders[step.ui_id].customRequest"
                 >
                   <div>
                     <PlusOutlined />
-                    <div class="mt-2">上传图片</div>
+                    <div style="margin-top: 8px">上传</div>
                   </div>
                 </Upload>
               </div>
