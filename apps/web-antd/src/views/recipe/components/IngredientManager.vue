@@ -32,6 +32,11 @@ const ingredientSearching = ref(false);
 
 const referenceStore = useRecipeReferenceStore();
 const { allUnits } = storeToRefs(referenceStore);
+// 在 state 定义区域，添加常量
+const MAX_GROUPS = 10; // 例如，最多10个分组
+
+// 在 state 定义区域，添加常量
+const MAX_TOTAL_INGREDIENTS = 50; // 例如，总共最多50个配料
 
 // --- 核心逻辑 ---
 
@@ -90,12 +95,25 @@ const internalGroupsToFlatData = (): RecipeIngredientInput[] => {
 
 const isUuid = (str: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
 
+// 创建一个计算属性来实时计算总配料数
+const totalIngredientCount = computed(() => {
+  return internalGroups.value.reduce((total, group) => total + group.ingredients.length, 0);
+});
+
 // watch 1: 当父组件传入扁平数据时，转换为UI的嵌套分组列表
 watch(() => props.modelValue, (newValue) => {
   // 这段逻辑非常复杂，为了保证正确性，我们使用一个简化但有效的深比较
-  const newFlatValue = JSON.stringify(newValue);
-  const oldFlatValue = JSON.stringify(internalGroupsToFlatData());
-  if (newFlatValue === oldFlatValue) {
+// 1. 将内部状态转换为扁平数据，用于比较
+  const currentFlatData = internalGroupsToFlatData();
+
+  // 2. 将两个扁平数组都进行排序和字符串化，以进行不依赖顺序的深比较
+  //    这里我们简单地用 JSON.stringify，对于这个场景足够了。
+  //    更复杂的场景可能需要更精细的比较。
+  const newFlatValueJSON = JSON.stringify(newValue?.slice().sort() || []);
+  const currentFlatValueJSON = JSON.stringify(currentFlatData.slice().sort());
+
+  // 3. 如果转换后的数据一致，说明变化是内部引起的，直接跳过，不再重建UI！
+  if (newFlatValueJSON === currentFlatValueJSON) {
     return;
   }
 
@@ -141,7 +159,13 @@ watch(() => props.modelValue, (newValue) => {
     }
   });
   const ungroupedIngredients = groupsMap.get(UNGROUPED_KEY)!;
-  if (ungroupedIngredients.length > 0 || (newUiGroups.length === 0 && newValue?.length > 0)) {
+  // ▼▼▼ 【核心修改】确保即使在初始状态下，也至少有一个分组存在 ▼▼▼
+  if (newUiGroups.length === 0) {
+    // 如果没有任何具名分组，就创建一个默认的“未分组”
+    // 这样可以确保 internalGroups.value 总是一个非空数组（至少有一个分组）
+    newUiGroups.push({ ui_id: uuidv4(), name: '', ingredients: ungroupedIngredients });
+  } else if (ungroupedIngredients.length > 0) {
+    // 如果有具名分组，且还有未分组的配料，也添加一个“未分组”
     newUiGroups.push({ ui_id: uuidv4(), name: '', ingredients: ungroupedIngredients });
   }
 
@@ -183,6 +207,11 @@ watch(internalGroups, (newGroups) => {
 
 // --- 事件处理 ---
 function addGroup() {
+  // 在函数开头增加校验
+  if (internalGroups.value.length >= MAX_GROUPS) {
+    message.warning(`最多只能添加 ${MAX_GROUPS} 个配料分组`);
+    return;
+  }
   const baseName = '新的分组';
   // 1. 获取所有已存在的分组名，放入一个 Set 中以便快速查找
   const existingNames = new Set(internalGroups.value.map(group => group.name));
@@ -206,6 +235,10 @@ function addGroup() {
 }
 
 function addIngredient(group: UIGroup) {
+  if (totalIngredientCount.value >= MAX_TOTAL_INGREDIENTS) {
+    message.warning(`总配料数量不能超过 ${MAX_TOTAL_INGREDIENTS} 个`);
+    return;
+  }
   group.ingredients.push({
     ui_id: uuidv4(), ingredientId: null, ingredientName: '',
     quantity: null, unit_id: null, note: null, group: group.name,
@@ -256,6 +289,24 @@ function getGroupNameHelp(name: string, currentId: string): string {
   }
   return '';
 }
+
+// 新增一个专门用于监控所有配料名称长度的深度侦听器
+watch(
+  () => internalGroups.value, // 侦听整个嵌套数组
+  (newGroups) => {
+    // 遍历所有分组和所有配料
+    newGroups.forEach(group => {
+      group.ingredients.forEach(ingredient => {
+        // 如果某个配料的名称存在且长度超限
+        if (ingredient.ingredientName && ingredient.ingredientName.length > 50) {
+          // 立即将其截断回最大长度
+          ingredient.ingredientName = ingredient.ingredientName.slice(0, 50);
+        }
+      });
+    });
+  },
+  { deep: true } // deep: true 是关键，确保能侦听到嵌套对象内部的变化
+);
 </script>
 
 <template>
@@ -270,8 +321,16 @@ function getGroupNameHelp(name: string, currentId: string): string {
               :validate-status="getGroupNameStatus(group.name, group.ui_id)"
               :help="getGroupNameHelp(group.name, group.ui_id)"
             >
-            <Input v-model:value="group.name" placeholder="输入分组名 (例如: 面团部分)，留空则为未分组" class="font-bold text-base border-none bg-transparent shadow-none" />
+              <Input
+                v-model:value="group.name"
+                placeholder="输入分组名 (例如: 面团部分)，留空则为未分组"
+                class="font-bold text-base border-none bg-transparent shadow-none"
+                :maxlength="20"      />
+
             </FormItem>
+            <span class="text-gray-400 text-sm ml-auto">
+              {{ group.ingredients.length }}
+            </span>
             <Button type="text" danger shape="circle" :icon="h(DeleteOutlined)" @click="removeGroup(groupIndex)" />
           </div>
 
@@ -286,12 +345,13 @@ function getGroupNameHelp(name: string, currentId: string): string {
                       :options="ingredientOptions"
                       style="width: 100%"
                       placeholder="搜索或输入新食材"
+                      :maxlength="50"
                       @search="handleIngredientSearch"
                       @select="(value, option) => handleIngredientSelect(ingredient, value, option)"
                     />
                   </FormItem>
                   <FormItem class="mb-0">
-                    <InputNumber v-model:value="ingredient.quantity" placeholder="数量" class="w-full" />
+                    <InputNumber v-model:value="ingredient.quantity" placeholder="数量" class="w-full" :min="0"      :max="99999"/>
                   </FormItem>
                   <FormItem class="mb-0">
                     <Select
@@ -306,7 +366,7 @@ function getGroupNameHelp(name: string, currentId: string): string {
                     />
                   </FormItem>
                   <FormItem class="mb-0">
-                    <Input v-model:value="ingredient.note" placeholder="备注 (例如: 切丁)" />
+                    <Input v-model:value="ingredient.note" placeholder="备注 (例如: 切丁)" :maxlength="100" show-count/>
                   </FormItem>
                 </div>
                 <Button type="text" danger shape="circle" :icon="h(DeleteOutlined)" @click="removeIngredient(group, ingredientIndex)" />
@@ -314,14 +374,24 @@ function getGroupNameHelp(name: string, currentId: string): string {
             </template>
           </draggable>
 
-          <Button type="dashed" size="small" @click="addIngredient(group)" class="mt-2 ml-8">
+          <Button
+            type="dashed"
+            size="small"
+            @click="addIngredient(group)"
+            class="mt-2 ml-8"
+            :disabled="totalIngredientCount >= MAX_TOTAL_INGREDIENTS" >
             <PlusOutlined /> 在此分组添加配料
           </Button>
         </Card>
       </template>
     </draggable>
 
-    <Button type="dashed" block @click="addGroup" class="mt-4">
+    <Button
+      type="dashed"
+      block
+      @click="addGroup"
+      class="mt-4"
+      :disabled="internalGroups.length >= MAX_GROUPS" >
       <PlusOutlined /> 添加新分组
     </Button>
   </div>

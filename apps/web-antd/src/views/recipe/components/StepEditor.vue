@@ -31,6 +31,10 @@ interface DraggableStepItem extends RecipeStepInput {
 // --- 1. 定义所有 state (状态) ---
 const stepUploaders = ref<Record<string, { customRequest: Function }>>({});
 const internalSteps = ref<DraggableStepItem[]>([]);
+// 在 state 定义区域，添加一个最大步骤数的常量
+const MAX_STEPS = 20; // 例如，最多允许20个步骤
+// 在 state 定义区域，添加每个步骤最大图片数的常量
+const MAX_IMAGES_PER_STEP = 5; // 例如，每个步骤最多5张图
 
 // --- 组件通信 (v-model) ---
 const props = defineProps<{
@@ -98,13 +102,22 @@ watch(internalSteps, (steps) => {
 }, { deep: true, immediate: true });
 
 // 通用的 beforeUpload
-const beforeUpload = (file: File) => {
+const beforeUpload = (file: File, step: DraggableStepItem) => {
   const isJpgOrPng = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
   const isLt10M = file.size / 1024 / 1024 < 10;
   if (!isJpgOrPng || !isLt10M) {
     message.error('请上传 10MB 以下的 JPG/PNG/WEBP 格式图片!');
     return false;
   }
+
+  // ▼▼▼ 【核心修改】在这里为特定步骤添加数量前置校验 ▼▼▼
+  // 确保 step.images 存在并且是一个数组
+  if (step.images && Array.isArray(step.images) && step.images.length >= MAX_IMAGES_PER_STEP) {
+    message.error(`每个步骤最多只能上传 ${MAX_IMAGES_PER_STEP} 张图片`);
+    // 返回 false 会立即中断上传流程
+    return false;
+  }
+
   return true;
 };
 
@@ -166,6 +179,12 @@ watch(internalSteps, (newValue) => {
 
 // 添加一个空的步骤
 function addStep() {
+  // 在函数开头增加校验
+  if (internalSteps.value.length >= MAX_STEPS) {
+    message.warning(`最多只能添加 ${MAX_STEPS} 个烹饪步骤`);
+    return; // 阻止继续执行
+  }
+
   internalSteps.value.push({
     ui_id: uuidv4(),
     instruction: '',
@@ -228,8 +247,9 @@ function removeStep(index: number) {
                   name="file"
                   list-type="picture-card"
                   multiple
+                  :max-count="MAX_IMAGES_PER_STEP"
                   v-model:file-list="step.images"
-                  :before-upload="beforeUpload"
+                  :before-upload="(file) => beforeUpload(file, step)"
                   :custom-request="stepUploaders[step.ui_id].customRequest"
                 >
                   <div>
@@ -252,7 +272,12 @@ function removeStep(index: number) {
       </template>
     </draggable>
 
-    <Button type="dashed" block @click="addStep" class="mt-4">
+    <Button
+      type="dashed"
+      block
+      @click="addStep"
+      class="mt-4"
+      :disabled="internalSteps.length >= MAX_STEPS" >
       <PlusOutlined />
       添加新步骤
     </Button>

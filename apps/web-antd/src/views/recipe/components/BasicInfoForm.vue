@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {ref, h, computed, watch, onUnmounted} from 'vue';
+import {ref, h, computed, watch, onUnmounted, nextTick} from 'vue';
 import {
   Form,
   FormItem,
@@ -54,7 +54,14 @@ const formState = computed({
   },
 });
 
+// 1. 定义最大分类数
+const MAX_CATEGORIES = 5;
 
+// 在你的 state 定义区域
+const MAX_TAGS = 8; // 定义最大标签数
+
+// 定义最大画廊图片数
+const MAX_GALLERY_IMAGES = 9; // 例如，最多9张
 
 // --- 【核心修改】通用的 beforeUpload (包含即时预览逻辑) ---
 const beforeUpload = (file: File, isCover: boolean = false) => {
@@ -63,6 +70,15 @@ const beforeUpload = (file: File, isCover: boolean = false) => {
   if (!isJpgOrPng || !isLt10M) {
     message.error('请上传 10MB 以下的 JPG/PNG/WEBP 格式图片!');
     return false;
+  }
+
+  // ▼▼▼ 【核心修改】在这里为画廊图片添加数量前置校验 ▼▼▼
+  if (!isCover) { // 如果不是封面图（即，是画廊图）
+    if (galleryFileList.value.length >= MAX_GALLERY_IMAGES) {
+      message.error(`最多只能上传 ${MAX_GALLERY_IMAGES} 张画廊图片`);
+      // 返回 false 会立即中断上传流程
+      return false;
+    }
   }
 
   // 为封面图生成单独的预览
@@ -161,6 +177,29 @@ const coverCustomRequest = async ({ file, onSuccess, onError, onProgress }: any)
 };
 
 
+// 2. 创建一个计算属性，用于动态生成带禁用状态的树数据
+const limitedTreeData = computed(() => {
+  const isLimitReached = formState.value.category_ids?.length >= MAX_CATEGORIES;
+
+  // 递归函数，用于遍历并修改树的每个节点
+  const processNode = (node) => {
+    const isSelected = formState.value.category_ids?.includes(node.id);
+    const shouldBeDisabled = isLimitReached && !isSelected;
+
+    const newNode = {
+      ...node,
+      disabled: shouldBeDisabled
+    };
+
+    if (node.children) {
+      newNode.children = node.children.map(processNode);
+    }
+
+    return newNode;
+  };
+
+  return allCategories.value.map(processNode);
+});
 
 const galleryCustomRequest = async ({ file, onSuccess, onError, onProgress }: any) => {
   isGalleryUploading.value = true;
@@ -278,6 +317,17 @@ onUnmounted(() => {
     URL.revokeObjectURL(coverPreviewUrl.value);
   }
 });
+
+// 在 category 的 watch 后面，添加一个新的 watch
+watch(() => formState.value.tags, (newValue, oldValue) => {
+  if (newValue && newValue.length > MAX_TAGS) {
+    message.warning(`最多只能添加 ${MAX_TAGS} 个标签`);
+    // 立即将值恢复到超限之前的状态
+    nextTick(() => {
+      formState.value.tags = oldValue;
+    });
+  }
+});
 </script>
 
 <template>
@@ -363,8 +413,9 @@ onUnmounted(() => {
       <Upload
         name="file"
         multiple
-        list-type="picture-card"
+        :max-count="MAX_GALLERY_IMAGES"
         :file-list="galleryFileList"
+        list-type="picture-card"
         :before-upload="(file) => beforeUpload(file, false)"
         :custom-request="galleryCustomRequest"
         @change="handleGalleryChange"
@@ -379,12 +430,12 @@ onUnmounted(() => {
     <FormItem label="分类" name="category_ids">
       <TreeSelect
         v-model:value="formState.category_ids"
-        :tree-data="allCategories"
+        :tree-data="limitedTreeData"
         :field-names="{ label: 'name', value: 'id', children: 'children' }"
         tree-default-expand-all
         multiple
         allow-clear
-        placeholder="为菜谱选择一个或多个分类"
+        placeholder="为菜谱选择一个或多个分类 (最多5个)"
 
         show-search
         tree-node-filter-prop="name"
@@ -395,7 +446,7 @@ onUnmounted(() => {
       <Select
         v-model:value="formState.tags"
         mode="tags"
-        placeholder="输入或搜索标签，按回车创建新标签"
+        placeholder="输入或搜索标签，按回车创建 (最多8个)"
         :options="tagOptions"
         :field-names="{ label: 'name', value: 'id' }"
         :filter-option="false"
