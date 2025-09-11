@@ -13,7 +13,7 @@ import type {
   PresignedPolicyRequest,
   PresignedUploadPolicy,
 
-} from '#/views/management/files/types';
+} from '#/views/content/files/types';
 import { requestClient } from '#/api/request';
 import type { StandardResponse, PageResponse } from '#/api/types';
 

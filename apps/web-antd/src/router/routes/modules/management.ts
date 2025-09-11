@@ -50,24 +50,7 @@ const routes: RouteRecordRaw[] = [
           icon: 'ion:key-outline',
         },
       },
-      {
-        name: 'CategoryManagement',
-        path: '/management/category',
-        component: () => import('#/views/management/category/index.vue'),
-        meta: {
-          title: $t('page.management.category'), // 确保在语言文件中添加此条目
-          icon: 'ion:folder-open-outline', // 我为你挑选了一个“文件夹”图标，很适合分类
-        },
-      },
-      {
-        name: 'UnitManagement',
-        path: '/management/units',
-        component: () => import('#/views/management/units/index.vue'),
-        meta: {
-          title: $t('page.management.unit'), // 确保在语言文件中添加此条目
-          icon: 'ion:folder-open-outline', // 我为你挑选了一个“文件夹”图标，很适合分类
-        },
-      },
+
     ],
   },
 ];

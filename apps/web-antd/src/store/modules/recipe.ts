@@ -6,7 +6,7 @@ import { message } from 'ant-design-vue';
 
 import type { PageResponse } from '#/api/types';
 // 【修改】导入树形分类类型
-import type { RecipeRead, RecipeListParams, CategoryReadWithChildren } from '#/views/recipe/types';
+import type { RecipeRead, RecipeListParams, CategoryReadWithChildren } from '#/views/content/recipe/types';
 import { getRecipeListPage } from '#/api/recipes/recipe';
 // 【修改】导入新的 category tree API
 import { getCategoryTree } from '#/api/management/category';

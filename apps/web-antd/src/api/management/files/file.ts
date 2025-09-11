@@ -9,7 +9,7 @@ import type {
   PresignedUploadURL,
   PresignedUploadPolicy,
   RegisterFilePayload,
-} from '#/views/management/files/types';
+} from '#/views/content/files/types';
 
 const API_PREFIX = '/file';
 const MANAGEMENT_PREFIX = '/file-management';

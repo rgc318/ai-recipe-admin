@@ -12,7 +12,7 @@ import StepEditor from './components/StepEditor.vue';
 import { useRecipeReferenceStore } from '#/store/modules/recipeReference';
 import { getRecipeDetails, createRecipe, updateRecipe } from '#/api/recipes/recipe';
 import type { RecipeRead, RecipeCreateData, RecipeUpdateData } from './types';
-import type { FileRecordRead } from '#/views/management/files/types';
+import type { FileRecordRead } from '#/views/content/files/types';
 
 const route = useRoute();
 const router = useRouter();

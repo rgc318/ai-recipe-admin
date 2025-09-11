@@ -5,7 +5,7 @@ import { PlusOutlined, LoadingOutlined, UserOutlined } from '@ant-design/icons-v
 import type {AvatarLinkDTO, UserReadWithRoles} from '#/views/management/user/types';
 import {generateMyAvatarUploadPolicy, linkMyUploadedAvatar} from '#/api/profile/profile';
 // import { registerFile } from '#/api/management/files/file';
-import type {FileRecordRead} from "#/views/recipe/types";
+import type {FileRecordRead} from "#/views/content/recipe/types";
 import axios from 'axios';
 
 const props = defineProps<{

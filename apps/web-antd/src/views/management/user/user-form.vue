@@ -31,7 +31,7 @@ import {
 } from '#/api/management/files/file';
 
 import { useUploader } from '#/hooks/web/useUploader';
-import type { FileRecordRead } from '#/views/management/files/types'
+import type { FileRecordRead } from '#/views/content/files/types'
 
 // 【新增】还需要一个 axios 实例来执行物理上传
 import axios from 'axios';

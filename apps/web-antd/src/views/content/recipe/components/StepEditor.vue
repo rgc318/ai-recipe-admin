@@ -16,7 +16,7 @@ import { useUploader } from '#/hooks/web/useUploader';
 
 // 1. 【核心】导入正确的类型
 import type { RecipeStepInput} from '../types';
-import type {FileRecordRead} from "#/views/management/files/types";
+import type {FileRecordRead} from "#/views/content/files/types";
 import {generatePresignedUploadPolicy, registerFile} from "#/api/management/files/file";
 import axios from "axios";
 

@@ -2,7 +2,7 @@
 
 // --- 基础实体 ---
 
-import type {FileRecordRead} from "#/views/management/files/types";
+import type {FileRecordRead} from "#/views/content/files/types";
 
 export interface TagRead {
   id: string;

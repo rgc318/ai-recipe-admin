@@ -18,7 +18,7 @@ import { LoadingOutlined, UploadOutlined, PlusOutlined } from '@ant-design/icons
 import { storeToRefs } from 'pinia';
 import { debounce } from 'lodash-es';
 import { useUploader } from '#/hooks/web/useUploader'; // 导入我们新的 Hook
-import type { FileRecordRead } from '#/views/management/files/types';
+import type { FileRecordRead } from '#/views/content/files/types';
 import { useRecipeReferenceStore } from '#/store/modules/recipeReference';
 import { searchTags } from '#/api/recipes/tag';
 import type { TagRead, RecipeCreateData } from '../types';

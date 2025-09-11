@@ -6,7 +6,7 @@ import type {
   RecipeRead,
   RecipeCreateData,
   RecipeUpdateData,
-} from '#/views/recipe/types';
+} from '#/views/content/recipe/types';
 
 const API_PREFIX = '/recipes';
 

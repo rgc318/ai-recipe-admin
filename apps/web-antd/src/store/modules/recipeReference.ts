@@ -5,9 +5,9 @@ import { defineStore } from 'pinia';
 import { message } from 'ant-design-vue';
 
 // 【修改】导入树形分类类型
-import type { CategoryReadWithChildren } from '#/views/recipe/types';
+import type { CategoryReadWithChildren } from '#/views/content/recipe/types';
 // 2. 从我们为“单位管理”模块创建的 types.ts 中导入类型
-import type { UnitRead } from '#/views/management/units/types';
+import type { UnitRead } from '#/views/content/units/types';
 import { getAllUnits } from '#/api/recipes/unit';
 // 【修改】导入新的 category tree API
 import { getCategoryTree } from '#/api/management/category';

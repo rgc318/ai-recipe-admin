@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { message } from 'ant-design-vue';
 import axios from 'axios';
 import { generatePresignedUploadPolicy, registerFile } from '#/api/management/files/file';
-import type { FileRecordRead } from '#/views/management/files/types';
+import type { FileRecordRead } from '#/views/content/files/types';
 
 interface UploaderOptions {
   profileName: string;

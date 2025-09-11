@@ -5,7 +5,7 @@ import type {
   CategoryCreate,
   CategoryUpdate,
   CategoryReadWithChildren,
-} from '#/views/management/category/types';
+} from '#/views/content/category/types';
 
 const API_PREFIX = '/categories';
 
