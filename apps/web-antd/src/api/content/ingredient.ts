@@ -1,4 +1,4 @@
-// src/api/management/recipes/ingredient.ts
+// src/api/management/content/ingredient.ts
 import { requestClient } from '#/api/request';
 import type { StandardResponse, PageResponse } from '#/api/types';
 import type { IngredientRead } from '#/views/content/recipe/types';

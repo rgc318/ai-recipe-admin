@@ -1,4 +1,4 @@
-// src/api/management/recipes/recipe.ts
+// src/api/management/content/recipe.ts
 import { requestClient } from '#/api/request';
 import type { StandardResponse, PageResponse } from '#/api/types';
 import type {

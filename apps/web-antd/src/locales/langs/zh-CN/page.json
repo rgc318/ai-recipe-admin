@@ -15,9 +15,7 @@
     "title": "系统管理",
     "user": "用户管理",
     "role": "角色管理",
-    "permission": "权限管理",
-    "category": "分类管理",
-    "unit": "单位管理"
+    "permission": "权限管理"
   },
   "content": {
     "title": "内容管理",
@@ -56,6 +54,32 @@
     },
     "unit": {
       "title": "单位管理"
+    },
+    "tag": {
+      "title": "标签管理",
+      "table": {
+        "name": "标签名称",
+        "recipeCount": "菜谱数量",
+        "createdAt": "创建时间"
+      },
+      "filter": {
+        "placeholder": "按名称模糊搜索..."
+      },
+      "drawer": {
+        "createTitle": "新增标签",
+        "updateTitle": "编辑标签"
+      },
+      "merge": {
+        "title": "合并标签",
+        "description": "将一个或多个“源标签”合并入一个“目标标签”。操作后，源标签将被删除，其关联的菜谱将全部转移到目标标签下。",
+        "source": "源标签 (将被合并并删除)",
+        "target": "目标标签 (将保留)",
+        "success": "标签合并成功"
+      },
+      "batchDelete": {
+        "confirmTitle": "确认批量删除？",
+        "confirmContent": "即将删除 {count} 个标签，此操作不可恢复。"
+      }
     },
     "comment": {
       "title": "评论管理"

@@ -7,7 +7,7 @@ import { useRecipeSearchStore } from '#/store/modules/recipe';
 import { storeToRefs } from 'pinia';
 import type { TableProps } from 'ant-design-vue';
 import type { RecipeRead } from './types';
-import { deleteRecipe, batchDeleteRecipes } from '#/api/recipes/recipe';
+import { deleteRecipe, batchDeleteRecipes } from '#/api/content/recipe';
 
 export function useRecipeManagement() {
   const router = useRouter();

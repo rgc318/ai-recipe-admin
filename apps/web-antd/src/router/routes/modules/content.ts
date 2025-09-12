@@ -49,7 +49,7 @@ const contentRoutes: RouteRecordRaw[] = [
         path: '/content/category', // 路径已更新
         component: () => import('#/views/content/category/index.vue'),
         meta: {
-          title: $t('page.management.category'), // "分类管理"
+          title: $t('page.content.category.title'), // "分类管理"
           icon: 'ion:folder-open-outline',
         },
       },
@@ -58,20 +58,20 @@ const contentRoutes: RouteRecordRaw[] = [
         path: '/content/units', // 路径已更新
         component: () => import('#/views/content/units/index.vue'),
         meta: {
-          title: $t('page.management.unit'), // "单位管理"
+          title: $t('page.content.unit.title'), // "单位管理"
           icon: 'ion:cube-outline', // 为单位换一个更合适的图标
         },
       },
       // ▼▼▼ 【新增】为即将开发的标签管理预留位置 ▼▼▼
-      // {
-      //   name: 'TagManagement',
-      //   path: '/content/tag',
-      //   component: () => import('#/views/management/tag/index.vue'), // 假设你的组件会放在这里
-      //   meta: {
-      //     title: $t('page.management.tag'), // "标签管理" (请在语言文件中添加)
-      //     icon: 'ion:pricetags-outline',
-      //   },
-      // },
+      {
+        name: 'TagManagement',
+        path: '/content/tag',
+        component: () => import('#/views/content/tag/index.vue'), // 假设你的组件会放在这里
+        meta: {
+          title: $t('page.content.tag.title'), // "标签管理" (请在语言文件中添加)
+          icon: 'ion:pricetags-outline',
+        },
+      },
     ],
   },
 ];

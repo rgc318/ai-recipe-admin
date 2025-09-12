@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { useRecipeReferenceStore } from '#/store/modules/recipeReference';
 import type { RecipeIngredientInput, IngredientRead } from '../types';
-import { searchIngredients } from '#/api/recipes/ingredient';
+import { searchIngredients } from '#/api/content/ingredient';
 
 // --- 【全新】定义UI所需的、更直观的嵌套数据结构 ---
 interface UIIngredient extends RecipeIngredientInput {

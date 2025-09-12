@@ -20,7 +20,7 @@ import { debounce } from 'lodash-es';
 import { useUploader } from '#/hooks/web/useUploader'; // 导入我们新的 Hook
 import type { FileRecordRead } from '#/views/content/files/types';
 import { useRecipeReferenceStore } from '#/store/modules/recipeReference';
-import { searchTags } from '#/api/recipes/tag';
+import { searchTags } from '#/api/content/tag';
 import type { TagRead, RecipeCreateData } from '../types';
 
 // 【新增】导入你的通用上传API

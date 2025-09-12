@@ -1,6 +1,6 @@
 import { requestClient } from '#/api/request';
 import type { StandardResponse, PageResponse } from '#/api/types';
-import type { UnitRead, UnitCreate, UnitUpdate } from '#/views/system/unit/types';
+import type { UnitRead, UnitCreate, UnitUpdate } from '#/views/content/units/types';
 
 const API_PREFIX = '/units';
 

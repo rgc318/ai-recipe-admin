@@ -15,9 +15,7 @@
     "title": "System Management",
     "user": "User Management",
     "role": "Role Management",
-    "permission": "Permission Management",
-    "category": "Category Management",
-    "unit": "Unit Management"
+    "permission": "Permission Management"
   },
   "content": {
     "title": "Content Management",
@@ -56,6 +54,32 @@
     },
     "unit": {
       "title": "Unit Management"
+    },
+    "tag": {
+      "title": "Tag Management",
+      "table": {
+        "name": "Tag Name",
+        "recipeCount": "Recipe Count",
+        "createdAt": "Created At"
+      },
+      "filter": {
+        "placeholder": "Search by name..."
+      },
+      "drawer": {
+        "createTitle": "New Tag",
+        "updateTitle": "Edit Tag"
+      },
+      "merge": {
+        "title": "Merge Tags",
+        "description": "Merge one or more 'source tags' into a single 'target tag'. Source tags will be deleted, and their recipes will be transferred to the target tag.",
+        "source": "Source Tags (will be merged and deleted)",
+        "target": "Target Tag (will be kept)",
+        "success": "Tags merged successfully"
+      },
+      "batchDelete": {
+        "confirmTitle": "Confirm Batch Deletion?",
+        "confirmContent": "About to delete {count} tags. This action cannot be undone."
+      }
     },
     "comment": {
       "title": "Comment Management"

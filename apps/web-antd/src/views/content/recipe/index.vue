@@ -6,7 +6,7 @@ import { useRecipeManagement } from './useRecipeManagement';
 import type { TableColumnType } from 'ant-design-vue';
 import type { RecipeRead, TagRead } from './types';
 import { debounce } from 'lodash-es';
-import { searchTags } from '#/api/recipes/tag';
+import { searchTags } from '#/api/content/tag';
 
 const {
   loading,

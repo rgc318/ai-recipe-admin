@@ -2,7 +2,7 @@ import { ref, reactive, computed } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import type { TableProps } from 'ant-design-vue';
 
-import { listUnitsPaginated, createUnit, updateUnit, deleteUnit } from '#/api/recipes/unit';
+import { listUnitsPaginated, createUnit, updateUnit, deleteUnit } from '#/api/content/unit';
 import type { UnitRead, UnitCreate, UnitUpdate } from './types';
 import type { PageResponse } from '#/api/types';
 import { useRecipeReferenceStore } from '#/store/modules/recipeReference';
