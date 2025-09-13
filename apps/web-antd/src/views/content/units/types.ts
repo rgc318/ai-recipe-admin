@@ -28,3 +28,35 @@ export interface UnitUpdate {
   abbreviation?: string | null;
   plural_name?: string | null;
 }
+
+// 定义从API读取的单位数据结构
+export interface UnitRead {
+  id: string;
+  name: string;
+  abbreviation?: string | null;
+  plural_name?: string | null;
+  ingredient_count: number;
+  is_deleted: boolean;
+  created_at: string;
+}
+
+// 定义创建单位时发送给API的数据结构
+export interface UnitCreateData {
+  name: string;
+  abbreviation?: string | null;
+  plural_name?: string | null;
+}
+
+// 定义更新单位时发送给API的数据结构
+export type UnitUpdateData = Partial<UnitCreateData>;
+
+// 定义合并单位时发送给API的数据结构
+export interface UnitMergeData {
+  source_unit_ids: string[];
+  target_unit_id: string;
+}
+
+// 定义批量操作单位时发送给API的数据结构
+export interface BatchDeleteUnitsPayload {
+  unit_ids: string[];
+}
