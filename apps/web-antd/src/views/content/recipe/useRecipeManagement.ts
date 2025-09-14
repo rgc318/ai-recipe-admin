@@ -1,25 +1,35 @@
 // src/views/management/recipe/useRecipeManagement.ts
 
-import { computed, onMounted, ref } from 'vue';
+import {computed, h, onMounted, ref} from 'vue';
 import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import {message, Modal} from 'ant-design-vue';
 import { useRecipeSearchStore } from '#/store/modules/recipe';
 import { storeToRefs } from 'pinia';
 import type { TableProps } from 'ant-design-vue';
 import type { RecipeRead } from './types';
-import { deleteRecipe, batchDeleteRecipes } from '#/api/content/recipe';
+import {
+  deleteRecipe,
+  batchDeleteRecipes,
+  restoreRecipes,         // <-- 导入
+  permanentDeleteRecipes,   // <-- 导入
+} from '#/api/content/recipe';
+import {QuestionCircleOutlined} from "@ant-design/icons-vue";
 
 export function useRecipeManagement() {
   const router = useRouter();
   const recipeStore = useRecipeSearchStore();
 
   // 【修改】从解构中移除 tagsForSelector，因为它已在 store 中被移除
-  const { loading, tableData, searchParams, categoriesForSelector } =
-    storeToRefs(recipeStore);
+  const {
+    loading,
+    tableData,
+    searchParams,
+    categoriesForSelector,
+    selectedRowKeys
+  } = storeToRefs(recipeStore);
 
   const { fetchData, fetchInitialSelectors, resetState } = recipeStore;
 
-  const selectedRowKeys = ref<string[]>([]);
 
   // --- 核心事件处理器 ---
   // (此部分代码设计良好，无需修改)
@@ -101,6 +111,42 @@ export function useRecipeManagement() {
     }
   };
 
+  // 2. 【新增】恢复方法
+  const handleRestoreRecipes = (ids: string[]) => {
+    Modal.confirm({
+      title: '确定要恢复选中的菜谱吗？',
+      icon: h(QuestionCircleOutlined),
+      content: `即将恢复 ${ids.length} 个菜谱。`,
+      async onOk() {
+        await restoreRecipes({ recipe_ids: ids });
+        message.success('恢复成功');
+        // 刷新当前页数据
+        fetchData({ page: tableData.value.page, per_page: tableData.value.per_page, ...searchParams.value });
+        selectedRowKeys.value = [];
+      },
+    });
+  };
+
+  // 3. 【新增】永久删除方法
+  const handlePermanentDeleteRecipes = (ids: string[], recordTitle?: string) => {
+    Modal.confirm({
+      title: '确定要永久删除吗？',
+      icon: h(QuestionCircleOutlined, { style: { color: 'red' } }),
+      content: h('div', { style: { color: 'red' } }, [
+        h('p', `即将从数据库中彻底移除 ${ids.length} 个菜谱及其所有关联文件。`),
+        h('p', '此操作不可恢复，请谨慎操作！'),
+        recordTitle ? h('p', `项目: ${recordTitle}`) : null,
+      ]),
+      okText: '确认永久删除',
+      okType: 'danger',
+      async onOk() {
+        await permanentDeleteRecipes({ recipe_ids: ids });
+        message.success('已永久删除');
+        refreshTableAfterDelete(); // 复用你已有的刷新逻辑
+      },
+    });
+  };
+
   // --- 生命周期 ---
   // (此部分代码设计良好，无需修改)
   onMounted(() => {
@@ -139,6 +185,8 @@ export function useRecipeManagement() {
     handleEdit,
     handleDelete,
     handleBatchDelete,
+    handleRestoreRecipes,           // <-- 导出
+    handlePermanentDeleteRecipes,   // <-- 导出
     refreshData: handleSearch,
   };
 }

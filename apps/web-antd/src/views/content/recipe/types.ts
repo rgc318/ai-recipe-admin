@@ -78,6 +78,7 @@ export interface RecipeRead {
   prep_time: string | null;
   cook_time: string | null;
   servings: string | null;
+  is_deleted: boolean;
   created_at: string;
   updated_at: string;
 
@@ -131,4 +132,12 @@ export interface RecipeListParams {
   title?: string;
   category_ids?: string[];
   tag_ids?: string[];
+  view_mode?: string, // <-- 【新增】
+}
+
+
+
+// 2. 在文件末尾添加新的 Payload 类型
+export interface BatchDeleteRecipesPayload {
+  recipe_ids: string[];
 }

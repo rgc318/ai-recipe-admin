@@ -5,7 +5,7 @@ import type {
   RecipeListParams,
   RecipeRead,
   RecipeCreateData,
-  RecipeUpdateData,
+  RecipeUpdateData, BatchDeleteRecipesPayload,
 } from '#/views/content/recipe/types';
 
 const API_PREFIX = '/recipes';
@@ -56,4 +56,25 @@ export function batchDeleteRecipes(data: { recipe_ids: string[] }) {
   return requestClient.delete<StandardResponse<{ deleted_count: number }>>(`${API_PREFIX}/batch`, {
     data,
   });
+}
+
+/**
+ * @description 从回收站中批量恢复菜谱
+ */
+export function restoreRecipes(data: BatchDeleteRecipesPayload) {
+  return requestClient.post<StandardResponse<{ restored_count: number }>>(
+    `${API_PREFIX}/restore`,
+    data,
+  );
+}
+
+/**
+ * @description 批量永久删除菜谱
+ */
+export function permanentDeleteRecipes(data: BatchDeleteRecipesPayload) {
+  // 同样，DELETE 请求的请求体需要放在 config.data 中
+  return requestClient.delete<StandardResponse<{ deleted_count: number }>>(
+    `${API_PREFIX}/permanent-delete`,
+    { data },
+  );
 }

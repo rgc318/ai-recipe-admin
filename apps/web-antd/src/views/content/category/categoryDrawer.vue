@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { Modal as AModal } from 'ant-design-vue';
+import { Button as AButton, Drawer as ADrawer } from 'ant-design-vue';
 import CategoryForm from './category-form.vue';
 import type { CategoryRead } from './types';
 
@@ -18,7 +18,7 @@ function open(mode: 'create' | 'update', data?: CategoryRead) {
   visible.value = true;
 }
 
-function handleCancel() {
+function handleClose() {
   visible.value = false;
 }
 
@@ -39,18 +39,17 @@ defineExpose({ open });
 </script>
 
 <template>
-  <AModal
-    v-model:open="visible"
-    :title="title"
-    destroy-on-close
-    @ok="handleOk"
-    @cancel="handleCancel"
-    :confirm-loading="loading"
-  >
+  <ADrawer v-model:open="visible" :title="title" width="500px" destroy-on-close @close="handleClose">
     <CategoryForm
       v-if="visible"
       ref="formRef"
       :category-data="categoryData"
     />
-  </AModal>
+    <template #footer>
+      <div style="text-align: right">
+        <AButton class="mr-2" @click="handleClose">取消</AButton>
+        <AButton type="primary" :loading="loading" @click="handleOk">确定</AButton>
+      </div>
+    </template>
+  </ADrawer>
 </template>

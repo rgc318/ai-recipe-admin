@@ -1,166 +1,149 @@
-import { ref, computed, watch } from 'vue';
+import { ref, reactive, computed, h } from 'vue';
 import { message, Modal } from 'ant-design-vue';
-import { createCategory, updateCategory, deleteCategory } from '#/api/management/category';
-import type { CategoryRead, CategoryCreate, CategoryUpdate, CategoryReadWithChildren } from './types';
-import { useCategoryStore } from '#/store/modules/category';
+import type { TableProps } from 'ant-design-vue';
+import { QuestionCircleOutlined } from '@ant-design/icons-vue';
+import {
+  listCategoriesPaginated,
+  deleteCategory,
+  batchDeleteCategories,
+  restoreCategories,
+  permanentDeleteCategories,
+} from '#/api/content/category';
+import type { CategoryRead } from './types';
+import type { PageResponse } from '#/api/types';
 
 export function useCategoryManagement() {
   const loading = ref(false);
-  const treeData = ref<CategoryReadWithChildren[]>([]);
-  const searchText = ref('');
+  const tableData = reactive<PageResponse<CategoryRead>>({
+    items: [],
+    total: 0,
+    page: 1,
+    per_page: 10,
+    total_pages: 0,
+  });
+  const selectedRowKeys = ref<string[]>([]);
+  const searchParams = reactive({
+    name: undefined, // 按名称模糊搜索
+    view_mode: 'active',
+  });
 
-  // 【核心】回归到一个简单的 ref 来管理展开状态，这是唯一的数据源
-  const expandedKeys = ref<string[]>([]);
-
-  const modalVisible = ref(false);
-  const modalLoading = ref(false);
-  const modalTitle = ref<'create' | 'edit'>('create');
-  const currentCategory = ref<Partial<CategoryRead>>({});
-  const categoryStore = useCategoryStore();
-
-  const handleReset = () => {
-    searchText.value = '';
-  };
-  async function fetchTreeData() {
+  async function fetchData(params?: any) {
     loading.value = true;
     try {
-      await categoryStore.fetchCategoryTree(true);
-      treeData.value = categoryStore.categoryTree;
-      // 数据加载后，默认只展开顶级节点
-      expandedKeys.value = treeData.value.map(item => item.id);
+      const finalParams = {
+        page: tableData.page,
+        per_page: tableData.per_page,
+        ...searchParams,
+        ...params,
+      };
+      const response = await listCategoriesPaginated(finalParams);
+      Object.assign(tableData, response);
+      selectedRowKeys.value = [];
     } catch (error) {
-      message.error('获取分类树失败');
-      treeData.value = [];
+      message.error('获取分类列表失败');
     } finally {
       loading.value = false;
     }
   }
 
-  // 计算属性现在只负责“过滤”数据
-  const filteredTreeData = computed(() => {
-    const query = searchText.value.trim().toLowerCase();
-    if (!query) {
-      return treeData.value;
-    }
+  const pagination = computed(() => ({
+    current: tableData.page,
+    pageSize: tableData.per_page,
+    total: tableData.total,
+    showTotal: (total: number) => `共 ${total} 条`,
+    showSizeChanger: true,
+    pageSizeOptions: ['10', '20', '50', '100'],
+  }));
 
-    // 【重要】这个递归算法确保了匹配项的子树被完整保留
-    function filter(nodes: CategoryReadWithChildren[]): CategoryReadWithChildren[] {
-      const result: CategoryReadWithChildren[] = [];
-      for (const node of nodes) {
-        const isMatch = node.name.toLowerCase().includes(query);
-        const filteredChildren = filter(node.children || []);
-
-        if (isMatch || filteredChildren.length > 0) {
-          result.push({
-            ...node,
-            // 如果节点自身匹配，则保留其所有原始子节点，使其可展开
-            // 否则，使用过滤后的子节点列表
-            children: isMatch ? (node.children || []) : filteredChildren,
-          });
-        }
-      }
-      return result;
-    }
-    return filter(treeData.value);
-  });
-
-  // watch 监听器现在只负责在搜索时“自动展开”，即更新 expandedKeys 的值
-  watch(searchText, (query) => {
-    if (!query.trim()) {
-      // 搜索清空时，恢复默认只展开顶级
-      expandedKeys.value = treeData.value.map(item => item.id);
-      return;
-    }
-
-    const newExpandedKeys = new Set<string>();
-    const queryLower = query.trim().toLowerCase();
-
-    // 递归函数，用于查找并收集匹配节点的【所有父级ID】
-    function findAndCollectParents(nodes: CategoryReadWithChildren[], parents: string[] = []) {
-      for (const node of nodes) {
-        if (node.name.toLowerCase().includes(queryLower)) {
-          parents.forEach(pId => newExpandedKeys.add(pId));
-        }
-        if (node.children && node.children.length > 0) {
-          findAndCollectParents(node.children, [...parents, node.id]);
-        }
-      }
-    }
-
-    findAndCollectParents(treeData.value);
-    expandedKeys.value = Array.from(newExpandedKeys);
-  });
-
-  // --- CRUD 操作 (保持不变，但刷新逻辑现在更可靠) ---
-  const handleAddNew = () => {
-    currentCategory.value = {};
-    modalTitle.value = 'create';
-    modalVisible.value = true;
+  const handleTableChange: TableProps['onChange'] = (page, _filters, sorter: any) => {
+    const sort = sorter.field && sorter.order
+      ? `${sorter.order === 'descend' ? '-' : ''}${sorter.field}`
+      : 'name';
+    fetchData({ page: page.current, per_page: page.pageSize, sort });
   };
 
-  const handleAddChild = (parent: CategoryRead) => {
-    currentCategory.value = { parent_id: parent.id };
-    modalTitle.value = 'create';
-    modalVisible.value = true;
+  const handleSearch = () => {
+    fetchData({ page: 1 });
   };
 
-  const handleEdit = (record: CategoryRead) => {
-    currentCategory.value = { ...record };
-    modalTitle.value = 'edit';
-    modalVisible.value = true;
+  const handleReset = () => {
+    searchParams.name = undefined;
+    handleSearch();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDeleteCategory = (record: CategoryRead) => {
     Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个分类吗？其所有子分类也会被一并删除。',
-      okText: '确认',
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          await deleteCategory(id);
-          message.success('删除成功');
-          await fetchTreeData(); // 刷新整棵树
-        } catch (error) {
-          message.error('删除失败');
-        }
+      title: '确定要删除此分类吗？',
+      icon: h(QuestionCircleOutlined, { style: { color: 'red' } }),
+      content: `分类“${record.name}”将被移入回收站。`,
+      async onOk() {
+        await deleteCategory(record.id);
+        message.success('删除成功');
+        fetchData();
       },
     });
   };
 
-  const handleModalOk = async (formData: CategoryCreate | CategoryUpdate) => {
-    modalLoading.value = true;
-    try {
-      const payload = { ...formData };
-      if (payload.parent_id === undefined) {
-        payload.parent_id = null;
-      }
-      if (modalTitle.value === 'create') {
-        await createCategory(payload as CategoryCreate);
-        message.success('创建成功');
-      } else {
-        await updateCategory(currentCategory.value.id!, payload as CategoryUpdate);
-        message.success('更新成功');
-      }
-      modalVisible.value = false;
-      await fetchTreeData(); // 刷新整棵树
-    } catch (error: any) {
-      message.error(error.response?.data?.message || '操作失败');
-    } finally {
-      modalLoading.value = false;
+  const handleRestoreCategories = (ids: string[]) => {
+    Modal.confirm({
+      title: '确定要恢复选中的分类吗？',
+      content: `即将恢复 ${ids.length} 个分类。`,
+      async onOk() {
+        await restoreCategories({ category_ids: ids });
+        message.success('恢复成功');
+        fetchData();
+      },
+    });
+  };
+
+  const handlePermanentDeleteCategories = (ids: string[], recordName?: string) => {
+    Modal.confirm({
+      title: '确定要永久删除吗？',
+      icon: h(QuestionCircleOutlined, { style: { color: 'red' } }),
+      content: h('div', { style: { color: 'red' } }, [
+        h('p', `即将从数据库中彻底移除 ${ids.length} 个分类。`),
+        h('p', '此操作不可恢复，请谨慎操作！'),
+        recordName ? h('p', `项目: ${recordName}`) : null,
+      ]),
+      okText: '确认永久删除',
+      okType: 'danger',
+      async onOk() {
+        await permanentDeleteCategories({ category_ids: ids });
+        message.success('已永久删除');
+        fetchData();
+      },
+    });
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedRowKeys.value.length === 0) {
+      message.warning('请至少选择一个分类');
+      return;
     }
+    Modal.confirm({
+      title: '确定要批量删除选中的分类吗？',
+      content: `即将删除 ${selectedRowKeys.value.length} 个分类。`,
+      async onOk() {
+        await batchDeleteCategories({ category_ids: selectedRowKeys.value });
+        message.success('批量删除成功');
+        fetchData();
+      },
+    });
   };
 
   return {
     loading,
-    searchText,
-    filteredTreeData,
-    expandedKeys, // <-- 直接暴露简单的 ref
-    handleReset, // <-- 直接暴露简单的 ref
-    modalVisible, modalLoading, modalTitle, currentCategory,
-    fetchData: fetchTreeData,
-    handleAddNew, handleAddChild, handleEdit, handleDelete, handleModalOk,
-    // 负责接收用户手动点击展开/关闭的事件
-    onExpandedKeysChange: (keys: string[]) => { expandedKeys.value = keys; },
+    tableData,
+    searchParams,
+    pagination,
+    selectedRowKeys,
+    handleTableChange,
+    handleSearch,
+    handleReset,
+    handleDeleteCategory,
+    handleBatchDelete,
+    handleRestoreCategories,
+    handlePermanentDeleteCategories,
+    fetchData: handleSearch,
   };
 }

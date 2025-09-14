@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { message } from 'ant-design-vue';
-import { getCategoryTree } from '#/api/management/category';
+import { getCategoryTree } from '#/api/content/category';
 import type { CategoryReadWithChildren } from '#/views/content/category/types';
 
 export const useCategoryStore = defineStore('category', () => {

@@ -10,7 +10,7 @@ import type { CategoryReadWithChildren } from '#/views/content/recipe/types';
 import type { UnitRead } from '#/views/content/units/types';
 import { getAllUnits } from '#/api/content/unit';
 // 【修改】导入新的 category tree API
-import { getCategoryTree } from '#/api/management/category';
+import { getCategoryTree } from '#/api/content/category';
 
 export const useRecipeReferenceStore = defineStore('recipe-reference', () => {
   // --- 状态 (State) ---

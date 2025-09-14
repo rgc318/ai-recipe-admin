@@ -1,6 +1,22 @@
 <script lang="ts" setup>
 import { h, ref } from 'vue';
-import { Avatar, Button, Card, Form, FormItem, Input, Popconfirm, Select, Table, Tag, Space, Tooltip, TreeSelect } from 'ant-design-vue';
+import {
+  Avatar,
+  Button,
+  Card,
+  Form,
+  FormItem,
+  Input,
+  Popconfirm,
+  Select,
+  Table,
+  Tag,
+  Space,
+  Tooltip,
+  TreeSelect,
+  RadioGroup,
+  RadioButton
+} from 'ant-design-vue';
 import { SyncOutlined, QuestionCircleOutlined, PictureOutlined } from '@ant-design/icons-vue';
 import { useRecipeManagement } from './useRecipeManagement';
 import type { TableColumnType } from 'ant-design-vue';
@@ -24,6 +40,8 @@ const {
   handleEdit,
   handleDelete,
   handleBatchDelete,
+  handleRestoreRecipes,         // <-- 引入
+  handlePermanentDeleteRecipes,   // <-- 引入
   refreshData,
 } = useRecipeManagement();
 
@@ -52,6 +70,19 @@ const formatDateTime = (date: string | null | undefined) =>
 const columns: TableColumnType<RecipeRead>[] = [
   { title: '封面', dataIndex: 'cover_image', key: 'cover', width: 80, fixed: 'left', align: 'center' },
   { title: '菜谱标题', dataIndex: 'title', key: 'title', width: 250, fixed: 'left', sorter: true },
+  {
+    title: '状态',
+    dataIndex: 'is_deleted',
+    key: 'status',
+    width: 100,
+    align: 'center',
+    customRender: ({ record }) => {
+      const isDeleted = record.is_deleted;
+      const color = isDeleted ? 'gray' : 'green';
+      const text = isDeleted ? '已删除' : '活跃';
+      return h(Tag, { color }, () => text);
+    },
+  },
   { title: '分类', dataIndex: 'categories', key: 'categories', width: 200, align: 'center' },
   { title: '标签', dataIndex: 'tags', key: 'tags', width: 220, align: 'center' },
   { title: '准备时间', dataIndex: 'prep_time', key: 'prep_time', width: 120, align: 'center' },
@@ -66,6 +97,14 @@ const columns: TableColumnType<RecipeRead>[] = [
   <div class="p-4">
     <Card :bordered="false" class="mb-4">
       <Form :model="searchParams" layout="inline" class="flex flex-wrap gap-x-4">
+        <FormItem label="查看模式">
+          <RadioGroup v-model:value="searchParams.view_mode" button-style="solid" @change="handleSearch">
+            <RadioButton value="active">只看活跃</RadioButton>
+            <RadioButton value="all">查看全部</RadioButton>
+            <RadioButton value="deleted">回收站</RadioButton>
+          </RadioGroup>
+        </FormItem>
+
         <FormItem label="标题">
           <Input v-model:value="searchParams.title" placeholder="模糊搜索标题" allow-clear @pressEnter="handleSearch" />
         </FormItem>
@@ -110,9 +149,18 @@ const columns: TableColumnType<RecipeRead>[] = [
       <div class="mb-4 flex justify-between items-center">
         <Space>
           <Button type="primary" @click="handleCreate">新建菜谱</Button>
-          <Popconfirm title="确定要删除选中的菜谱吗？" @confirm="handleBatchDelete">
-            <Button type="danger" :disabled="!hasSelected">批量删除</Button>
-          </Popconfirm>
+
+          <template v-if="searchParams.view_mode === 'active'">
+            <Popconfirm title="确定要将选中的菜谱移入回收站吗？" @confirm="handleBatchDelete">
+              <Button type="danger" :disabled="!hasSelected">批量删除</Button>
+            </Popconfirm>
+          </template>
+
+          <template v-if="searchParams.view_mode === 'deleted'">
+            <Button type="primary" :disabled="!hasSelected" @click="() => handleRestoreRecipes(selectedRowKeys)">批量恢复</Button>
+            <Button type="danger" :disabled="!hasSelected" @click="() => handlePermanentDeleteRecipes(selectedRowKeys)">批量永久删除</Button>
+          </template>
+
           <span v-if="hasSelected" class="text-gray-500 text-sm">已选择 {{ selectedRowKeys.length }} 项</span>
         </Space>
         <Tooltip title="刷新">
@@ -165,12 +213,17 @@ const columns: TableColumnType<RecipeRead>[] = [
           </template>
 
           <template v-if="column.key === 'action'">
-            <Space>
+            <Space v-if="!record.is_deleted">
               <Button type="link" size="small" @click="handleEdit(record)">编辑</Button>
-              <Popconfirm title="确定要删除此菜谱吗？" @confirm="handleDelete(record)">
+              <Popconfirm title="确定要将此菜谱移入回收站吗？" @confirm="handleDelete(record)">
                 <template #icon><QuestionCircleOutlined style="color: red" /></template>
                 <Button type="link" danger size="small">删除</Button>
               </Popconfirm>
+            </Space>
+
+            <Space v-else>
+              <Button type="link" size="small" @click="() => handleRestoreRecipes([record.id])">恢复</Button>
+              <Button type="link" danger size="small" @click="() => handlePermanentDeleteRecipes([record.id], record.title)">永久删除</Button>
             </Space>
           </template>
         </template>

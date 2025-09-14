@@ -9,13 +9,14 @@ import type { PageResponse } from '#/api/types';
 import type { RecipeRead, RecipeListParams, CategoryReadWithChildren } from '#/views/content/recipe/types';
 import { getRecipeListPage } from '#/api/content/recipe';
 // 【修改】导入新的 category tree API
-import { getCategoryTree } from '#/api/management/category';
+import { getCategoryTree } from '#/api/content/category';
 
 // 初始筛选条件保持不变，非常棒
 const initialSearchParams: Omit<RecipeListParams, 'page' | 'per_page' | 'sort'> = {
   title: undefined,
   category_ids: [],
   tag_ids: [],
+  view_mode: 'active', // <-- 【新增】
 };
 
 export const useRecipeSearchStore = defineStore('recipe-search', () => {
@@ -33,6 +34,7 @@ export const useRecipeSearchStore = defineStore('recipe-search', () => {
   // 【修改】用于“列表页筛选器”的分类选项，现在是树形结构
   const categoriesForSelector = ref<CategoryReadWithChildren[]>([]);
 
+  const selectedRowKeys = ref<string[]>([]);
   // --- 动作 (Actions) ---
 
   // fetchData 函数逻辑正确，无需修改
@@ -45,11 +47,10 @@ export const useRecipeSearchStore = defineStore('recipe-search', () => {
       if (!cleanParams.tag_ids?.length) delete cleanParams.tag_ids;
 
       const response = await getRecipeListPage(cleanParams);
-      tableData.items = response.items;
-      tableData.total = response.total;
-      tableData.page = response.page;
-      tableData.per_page = response.per_page;
-      tableData.total_pages = response.total_pages;
+      Object.assign(tableData, response); // 使用 Object.assign 替代逐个赋值
+
+      // 2. 【核心】在每次成功获取新数据后，自动清空选择
+      selectedRowKeys.value = [];
     } catch (error: any) {
       message.error(`菜谱数据加载失败: ${error.message || '请重试'}`);
       tableData.items = [];
@@ -74,6 +75,7 @@ export const useRecipeSearchStore = defineStore('recipe-search', () => {
   // 重置搜索条件 (无需修改)
   function resetState() {
     Object.assign(searchParams, initialSearchParams);
+    selectedRowKeys.value = [];
   }
 
   // 完整的 Pinia Store 重置 (无需修改)
@@ -89,6 +91,7 @@ export const useRecipeSearchStore = defineStore('recipe-search', () => {
     tableData,
     searchParams,
     categoriesForSelector,
+    selectedRowKeys, // <-- 【修正】在这里导出状态
     fetchData,
     fetchInitialSelectors,
     resetState,
