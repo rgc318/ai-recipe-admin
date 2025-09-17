@@ -9,7 +9,12 @@ import { useUserSearchStore } from '#/store/modules/userSearch';
 // 【第二步】只导入视图层需要的类型和少量的 API 函数
 import type { UserReadWithRoles } from '#/views/management/user/types';
 // 2. 导入新的批量删除 API 函数 (假设你已在 API 文件中创建)
-import { deleteUser, batchDeleteUsers } from '#/api/management/users/user';
+import {
+  deleteUser,
+  batchDeleteUsers,
+  restoreUsers,
+  permanentDeactivateUsers,
+} from '#/api/management/users/user';
 
 
 /**
@@ -28,22 +33,20 @@ export function useUserManagement() {
   // 3. 新增 state，用于存储表格中被选中的行的 key (即用户ID)
   const selectedRowKeys = ref<string[]>([]);
 
-  // --- 辅助函数：用于删除成功后刷新表格 ---
-  const refreshTableAfterDelete = () => {
-    // 如果当前页在删除后变为空，且不是第一页，则请求上一页
-    const isLastItemOnPage = selectedRowKeys.value.length >= tableData.value.items.length && tableData.value.page > 1;
+  // --- 辅助函数：用于操作成功后刷新表格 ---
+  const refreshTableAfterOperation = () => {
+    // 如果当前页在操作后变为空，且不是第一页，则请求上一页
+    const isLastItemOnPage =
+      selectedRowKeys.value.length >= tableData.value.items.length && tableData.value.page > 1;
     const currentPage = isLastItemOnPage ? tableData.value.page - 1 : tableData.value.page;
 
-    // 清空选择
-    selectedRowKeys.value = [];
+    selectedRowKeys.value = []; // 清空选择
 
-    // 重新获取数据
-    handleTableChange(
-      { current: currentPage, pageSize: tableData.value.per_page },
-      {},
-      {}
-    );
-  }
+    // 使用更新后的页码重新获取数据
+    handleTableChange({ current: currentPage, pageSize: tableData.value.per_page }, {}, {});
+  };
+
+  // --- 辅助函数：用于删除成功后刷新表格
 
   // --- 事件处理器 (现在它们只负责调用 store 的 action) ---
 
@@ -84,7 +87,7 @@ export function useUserManagement() {
       selectedRowKeys.value = [record.id];
       await deleteUser(record.id);
       message.success(`用户 [${record.username}] 删除成功`);
-      refreshTableAfterDelete(); // 复用刷新逻辑
+      refreshTableAfterOperation(); // 复用刷新逻辑
       // 如果当前页只剩一条数据且不是第一页，则请求上一页
       // const currentPage = (tableData.value.items.length === 1 && tableData.value.page > 1)
       //   ? tableData.value.page - 1
@@ -109,11 +112,57 @@ export function useUserManagement() {
     try {
       await batchDeleteUsers({ user_ids: selectedRowKeys.value });
       message.success(`成功删除 ${selectedRowKeys.value.length} 个用户`);
-      refreshTableAfterDelete(); // 复用刷新逻辑
+      refreshTableAfterOperation(); // 复用刷新逻辑
     } catch(error: any) {
       message.error(`批量删除失败: ${error.message || '未知错误'}`);
     }
   };
+
+
+
+  // 【新增2】恢复用户的处理器
+  const handleRestore = async () => {
+    if (selectedRowKeys.value.length === 0) {
+      message.warning('请至少选择一项');
+      return;
+    }
+    try {
+      await restoreUsers({ user_ids: selectedRowKeys.value });
+      message.success(`成功恢复 ${selectedRowKeys.value.length} 个用户`);
+      refreshTableAfterOperation();
+    } catch (error: any) {
+      message.error(`恢复失败: ${error.message || '未知错误'}`);
+    }
+  };
+
+  // 【新增3】永久停用的处理器
+  const handlePermanentDeactivate = async () => {
+    if (selectedRowKeys.value.length === 0) {
+      message.warning('请至少选择一项');
+      return;
+    }
+    try {
+      await permanentDeactivateUsers({ user_ids: selectedRowKeys.value });
+      message.success(`成功永久停用 ${selectedRowKeys.value.length} 个用户`);
+      refreshTableAfterOperation();
+    } catch (error: any) {
+      message.error(`操作失败: ${error.message || '未知错误'}`);
+    }
+  };
+
+  // 【新增4】单个恢复用户的处理器
+  const handleRestoreUser = async (record: UserReadWithRoles) => {
+    try {
+      selectedRowKeys.value = [record.id]; // 暂存ID用于计算刷新页码
+      await restoreUsers({ user_ids: [record.id] });
+      message.success(`用户 [${record.username}] 已恢复`);
+      refreshTableAfterOperation();
+    } catch (error: any) {
+      message.error(`恢复失败: ${error.message || '未知错误'}`);
+      selectedRowKeys.value = [];
+    }
+  };
+
   // --- 生命周期 ---
   onMounted(() => {
     // 组件挂载时，触发 store 的 action 来获取初始数据
@@ -142,6 +191,9 @@ export function useUserManagement() {
     handleReset,
     handleDeleteUser,
     handleBatchDelete, // 暴露 handleBatchDelete
+    handleRestore, // 【修改5】暴露新方法
+    handlePermanentDeactivate, // 【修改5】暴露新方法
+    handleRestoreUser, // 【修改5】暴露新方法
     // 将 handleSearch 暴露为 fetchData，供 UserDrawer 的 @success 事件回调使用
     // 这能确保新增/编辑用户后，表格会重置到第一页并刷新
     fetchData: handleSearch,

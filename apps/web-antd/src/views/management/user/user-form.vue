@@ -8,6 +8,7 @@ import {
   Switch as ASwitch,
   Upload as AUpload, // 【新增】导入Upload组件
   Avatar as AAvatar,   // 【新增】导入Avatar组件
+  Button as AButton, // <--- 【在這裡添加】
   message,
 } from 'ant-design-vue';
 import type { FormInstance, UploadProps } from 'ant-design-vue';

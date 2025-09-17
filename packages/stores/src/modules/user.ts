@@ -1,7 +1,7 @@
 // 【第一步：导入中心化的类型定义】
 // 我们不再在本地定义 UserInfo，而是从项目的类型包中导入。
 // 这确保了整个应用都使用同一个、唯一的 UserInfo 类型。
-import type { UserInfo } from '@vben/types';
+import type { UserInfo } from '@vben-core/typings';
 
 import { acceptHMRUpdate, defineStore } from 'pinia';
 
@@ -32,6 +32,31 @@ export const useUserStore = defineStore('core-user', {
     userRoles: [],
     userPermissions: [], // 初始化权限列表为空数组
   }),
+
+  getters: {
+    /**
+     * 【你要求的方法】直接获取完整的 userInfo 对象
+     * @param state - 当前 store 的 state
+     * @returns UserInfo 对象或 null
+     */
+    getUserInfo(state): null | UserInfo {
+      console.log('1. [userStore Getter] Getting userInfo:', state.userInfo); // <--- 添加关键日志1
+      return state.userInfo;
+    },
+
+    /**
+     * 【核心】将 is_superuser 的判断逻辑也封装成一个 getter
+     * 这是最佳实践，让 Store 自己负责解释自己的数据。
+     * @param state - 当前 store 的 state
+     * @returns boolean
+     */
+    isSuperuser(state): boolean {
+      const superuserStatus = !!state.userInfo?.is_superuser;
+      console.log('2. [userStore Getter] Getting isSuperuser status:', superuserStatus); // <--- 添加关键日志2
+      return superuserStatus;
+    },
+  },
+
   // 【第四步：增强 Actions】
   actions: {
     /**

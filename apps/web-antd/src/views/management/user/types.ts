@@ -27,6 +27,8 @@ export interface UserReadWithRoles {
   last_login_at?: string | null; // datetime string
   roles: RoleItem[]; // 嵌套的角色信息数组
   permissions: string[]; // Set<str> 在JSON中通常是字符串数组
+  is_deleted?: boolean
+
 }
 
 /**
@@ -43,6 +45,8 @@ export interface UserListParams {
   is_active?: boolean;
   role_ids?: string[];
   full_name?: string; // 示例：为未来扩展做准备
+  is_deleted?: boolean;
+  view_mode?: string; // <--- 确保这一行存在
 }
 
 /**

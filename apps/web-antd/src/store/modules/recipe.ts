@@ -15,7 +15,7 @@ import { getCategoryTree } from '#/api/content/category';
 const initialSearchParams: Omit<RecipeListParams, 'page' | 'per_page' | 'sort'> = {
   title: undefined,
   category_ids: [],
-  tag_ids: [],
+  tags: [],
   view_mode: 'active', // <-- 【新增】
 };
 
@@ -44,7 +44,15 @@ export const useRecipeSearchStore = defineStore('recipe-search', () => {
       const cleanParams = { ...params };
       if (!cleanParams.title) delete cleanParams.title;
       if (!cleanParams.category_ids?.length) delete cleanParams.category_ids;
-      if (!cleanParams.tag_ids?.length) delete cleanParams.tag_ids;
+      // 2. 【核心修改】在发送 API 请求前，转换 tags 的数据结构
+      if (cleanParams.tags && cleanParams.tags.length > 0) {
+        // 从 [{value: 'id', label: 'name'}, ...] 提取出 ['id', ...]
+        cleanParams.tag_ids = cleanParams.tags.map((tag: { value: string }) => tag.value);
+        delete cleanParams.tags; // 删除原始的 tags 属性，避免发送给后端
+      } else {
+        delete cleanParams.tags; // 确保空数组或 undefined 也不会被发送
+        delete cleanParams.tag_ids; // 确保旧的 tag_ids 字段也被清理
+      }
 
       const response = await getRecipeListPage(cleanParams);
       Object.assign(tableData, response); // 使用 Object.assign 替代逐个赋值

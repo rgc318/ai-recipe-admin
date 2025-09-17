@@ -30,6 +30,28 @@ interface BasicUserInfo {
   username: string;
 }
 
+interface UserInfo extends BasicUserInfo {
+  /**
+   * 用户描述
+   */
+  desc: string;
+  /**
+   * 首页地址
+   */
+  homePath: string;
+
+  /**
+   * accessToken
+   */
+  token: string;
+
+  permissions?: string;
+
+  is_superuser?: boolean;
+
+
+}
+
 type ClassType = Array<object | string> | object | string;
 
-export type { BasicOption, BasicUserInfo, ClassType, SelectOption, TabOption };
+export type { BasicOption, BasicUserInfo, ClassType, SelectOption, TabOption, UserInfo };

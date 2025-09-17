@@ -1,6 +1,6 @@
 import type { Recordable, UserInfo } from '@vben/types';
 
-import { ref } from 'vue';
+import {computed, ref} from 'vue';
 import { useRouter } from 'vue-router';
 
 import { LOGIN_PATH } from '@vben/constants';
@@ -20,6 +20,21 @@ export const useAuthStore = defineStore('auth', () => {
 
   const loginLoading = ref(false);
   const registerLoading = ref(false);
+
+  const isSuperuser = computed(() => {
+    // 【关键日志3】我们看看 authStore 看到的 userStore.isSuperuser 是什么
+    // console.log('2. [authStore Computed] Reading from userStore.userInfo:', userStore.userInfo);
+    // console.log('3. [authStore Computed] Reading from userStore.isSuperuser:', userStore.isSuperuser);
+    // console.log('3. [authStore Computed] Reading from userStore.hasPermission:', userStore.hasPermission('test'));
+    return userStore.isSuperuser;
+  });
+
+  // 【快捷方式2】创建一个 can 方法直接调用 userStore 的 action
+  // 'can' 是一个在权限领域很常用的命名
+  function can(permissionCode: string): boolean {
+    return userStore.hasPermission(permissionCode);
+  }
+
 
   /**
    * 异步处理登录操作
@@ -147,6 +162,8 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUserInfo,
     loginLoading,
     registerLoading,
+    isSuperuser, // <--- 在这里将它暴露出去
+    can,
     logout,
   };
 });

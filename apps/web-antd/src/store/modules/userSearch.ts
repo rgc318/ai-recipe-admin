@@ -15,6 +15,7 @@ const initialSearchParams = {
   phone: undefined,
   is_active: undefined,
   role_ids: undefined,
+  view_mode: 'active',
 };
 
 export const useUserSearchStore = defineStore('user-search', () => {

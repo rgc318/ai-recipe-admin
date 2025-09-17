@@ -124,8 +124,9 @@ const columns: TableColumnType<RecipeRead>[] = [
 
         <FormItem label="标签">
           <Select
-            v-model:value="searchParams.tag_ids"
+            v-model:value="searchParams.tags"
             mode="multiple"
+            label-in-value
             placeholder="搜索并选择标签"
             style="width: 200px"
             allow-clear

@@ -1,102 +1,61 @@
-import type {PermissionRead} from "#/views/management/permission/types";
+// 文件路径: src/views/management/role/types.ts
 
-export interface RoleItem {
+import type { PermissionRead } from "#/views/management/permission/types";
+
+// --- 1. 基础与读取类型 (作为所有其他类型的基石) ---
+
+/**
+ * @description 角色的核心读取模型 (对应后端 RoleRead)
+ * 这是从数据库返回的角色对象的基础形态。
+ */
+export interface RoleRead {
   id: string;
   name: string;
   code: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-/**
- * 权限的基础信息 (对应后端的 PermissionRead)
- */
-export interface PermissionItem {
-  id: string; // UUID
-  code: string;
-  name: string;
   description?: string | null;
+  created_at: string;
+  updated_at: string;
+  is_deleted: boolean; // <-- 确保包含软删除状态
 }
 
-
 /**
- * 包含权限详情的角色信息 (对应后端的 RoleReadWithPermissions)
+ * @description 包含权限详情的角色读取模型 (对应后端 RoleReadWithPermissions)
+ * 用于列表和详情页。
  */
-export interface RoleWithPermissions extends RoleItem {
-  permissions: PermissionItem[];
+export interface RoleReadWithPermissions extends RoleRead {
+  permissions: PermissionRead[];
 }
 
 /**
- * 用于下拉选择器的轻量级角色信息 (对应后端的 RoleSelectorRead)
+ * @description 用于下拉选择器的轻量级角色模型 (对应后端 RoleSelectorRead)
  */
 export interface RoleSelectorItem {
-  id: string; // UUID
+  id: string;
   name: string;
 }
 
+
+// --- 2. API 请求/响应体 (Payloads & Data Transfer Objects) ---
+
 /**
- * 创建角色时的请求体 (对应后端的 RoleCreate)
+ * @description 创建角色时的请求体 (对应后端 RoleCreate)
  */
 export interface RoleCreateData {
   code: string;
   name: string;
   description?: string | null;
-  permission_ids: string[]; // 对应 permission_ids: List[UUID]
+  permission_ids: string[];
 }
 
 /**
- * 更新角色时的请求体 (对应后端的 RoleUpdate)
- * 所有字段都是可选的
+ * @description 更新角色时的请求体 (对应后端 RoleUpdate)
+ * 所有字段都是可选的。
  */
 export type RoleUpdateData = Partial<RoleCreateData>;
 
-
 /**
- * 专门用于批量更新角色权限的请求体 (对应后端的 RolePermissionsUpdate)
+ * @description 角色列表的查询参数 (对应后端 API 的 Query Params)
  */
-export interface RolePermissionsUpdateData {
-  permission_ids: string[];
-}
-
-/**
- * 角色列表的查询参数 (对应后端 list_roles_paginated 的 Query 参数)
- */
-export interface RoleListParams {
-  page?: number;
-  per_page?: number;
-  order_by?: string; // 例如: "created_at:desc"
-  name?: string;     // 模糊搜索
-  code?: string;     // 精确过滤
-}
-
-export interface RoleRead {
-  id: string;
-  name: string;
-  code: string;
-  description?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface RoleReadWithPermissions extends RoleRead {
-  permissions: PermissionRead[];
-}
-
-export interface RoleSelector {
-  id: string;
-  name: string;
-}
-
-export interface RoleCreate {
-  code: string;
-  name:string;
-  description?: string | null;
-  permission_ids: string[];
-}
-
-
-export type RoleUpdate = Partial<RoleCreate>;
-
 export interface RoleListParams {
   page?: number;
   per_page?: number;
@@ -109,4 +68,23 @@ export interface RoleListParams {
    * 通用搜索关键字，后端将对 name 和 code 字段进行模糊查询
    */
   search?: string;
+  /**
+   * 查看模式
+   */
+  view_mode?: 'active' | 'deleted' | 'all';
+}
+
+/**
+ * @description 【新增】用于批量操作（删除、恢复）的请求体
+ */
+export interface BatchRoleActionPayload {
+  role_ids: string[];
+}
+
+/**
+ * @description 【新增】用于合并角色的请求体 (对应后端 RoleMergePayload)
+ */
+export interface RoleMergePayload {
+  source_role_ids: string[];
+  destination_role_id: string;
 }

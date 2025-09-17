@@ -132,6 +132,7 @@ export interface RecipeListParams {
   title?: string;
   category_ids?: string[];
   tag_ids?: string[];
+  tags?: Array<{ value: string; label: string }>;
   view_mode?: string, // <-- 【新增】
 }
 

@@ -158,3 +158,26 @@ export function getUserDetails(userId: string) {
 }
 
 
+/**
+ * @description 【新增】批量恢复用户
+ * @param data - 包含 user_ids 列表的对象
+ */
+export function restoreUsers(data: { user_ids: string[] }) {
+  // 注意：后端的接口是 POST /users/restore
+  return requestClient.post<StandardResponse<{ restored_count: number }>>(
+    `${API_PREFIX}/restore`,
+    data,
+  );
+}
+
+/**
+ * @description 【新增】批量永久停用并匿名化用户
+ * @param data - 包含 user_ids 列表的对象
+ */
+export function permanentDeactivateUsers(data: { user_ids: string[] }) {
+  // 注意：后端的接口是 DELETE /users/permanent-deactivation
+  return requestClient.delete<StandardResponse<{ deactivated_count: number }>>(
+    `${API_PREFIX}/permanent-deactivation`,
+    { data }, // DELETE 请求如果带 body，通常放在 data 属性里
+  );
+}
