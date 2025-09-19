@@ -26,16 +26,16 @@ import {
   updateUser,
 } from '#/api/management/users/user';
 
+
 import {
   generatePresignedUploadPolicy,     // 新增时使用
   registerFile,                        // 新增时使用
-} from '#/api/management/files/file';
+  uploadToCloud, // <-- 【核心新增】导入我们通用的物理上传工具
+} from '#/api/content/file';
 
 import { useUploader } from '#/hooks/web/useUploader';
 import type { FileRecordRead } from '#/views/content/files/types'
 
-// 【新增】还需要一个 axios 实例来执行物理上传
-import axios from 'axios';
 
 // --- 组件通信 (Props & Emits) ---
 const props = defineProps({
@@ -60,9 +60,9 @@ const localPreviewUrl = ref('');
 const isUploading = ref(false)
 
 // --- 上传工具与状态 ---
-const { isUploading: isCreateUploading, customRequest: createModeUpload } = useUploader({
-  profile_name: 'user_avatars',
-});
+// const { isUploading: isCreateUploading, customRequest: createModeUpload } = useUploader({
+//   profile_name: 'user_avatars',
+// });
 
 // --- 3. 表单状态与规则 ---
 const formRef = ref<FormInstance>();
@@ -138,14 +138,13 @@ const customRequest = async ({ file, onSuccess, onError, onProgress }: any) => {
     }
 
     // --- 步骤 B: 物理上传文件到云 (通用逻辑) ---
-    const formData = new FormData();
-    Object.keys(policy.fields).forEach((key) => formData.append(key, policy.fields[key]));
-    formData.append('file', file);
-    await axios.post(policy.url, formData, {
-      onUploadProgress: (event) => {
-        if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
-      },
-    });
+    const etag = await uploadToCloud(
+      policy,
+      file,
+      (percent) => {
+        onProgress({ percent }); // 将进度回调透传给 antdv
+      }
+    );
 
     // --- 步骤 C: 根据模式，执行不同的后续操作 ---
     if (props.userData) {
@@ -155,6 +154,7 @@ const customRequest = async ({ file, onSuccess, onError, onProgress }: any) => {
         original_filename: file.name,
         content_type: file.type,
         file_size: file.size,
+        etag: etag,
       });
       formState.avatar_url = linkRes.full_avatar_url || '';
       message.success('头像更新成功！');
@@ -167,6 +167,7 @@ const customRequest = async ({ file, onSuccess, onError, onProgress }: any) => {
         content_type: file.type,
         file_size: file.size,
         profile_name: 'user_avatars',
+        etag: etag,
       });
       formState.avatar_file_record_id = registerRes.id;
       formState.avatar_url = registerRes.url || '';

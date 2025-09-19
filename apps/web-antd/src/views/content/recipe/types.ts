@@ -2,7 +2,7 @@
 
 // --- 基础实体 ---
 
-import type {FileRecordRead} from "#/views/content/files/types";
+import type {FileInfo, FileRecordRead} from "#/views/content/files/types";
 
 export interface TagRead {
   id: string;
@@ -46,6 +46,7 @@ export interface RecipeStepInput {
   instruction: string;
   duration?: string | null; // 【新增】步骤时长
   image_ids?: string[];
+  fileList?: FileInfo | [];
 }
 
 // --- 菜谱配料 ---

@@ -83,6 +83,70 @@
     },
     "comment": {
       "title": "评论管理"
+    },
+
+    "// ▼▼▼ 新增“文件管理”模块 ▼▼▼": "================================",
+    "file": {
+      "title": "文件管理",
+      "table": {
+        "preview": "预览",
+        "filename": "原始文件名",
+        "info": "文件信息",
+        "size": "文件大小",
+        "type": "文件类型",
+        "profile": "存储 Profile",
+        "status": "状态",
+        "uploader": "上传者",
+        "createdAt": "上传时间",
+        "actions": "操作"
+      },
+      "filter": {
+        "viewMode": "查看模式",
+        "active": "活跃文件",
+        "all": "全部文件",
+        "deleted": "回收站",
+        "filenameSearch": "文件名搜索",
+        "placeholder": {
+          "filename": "按原始文件名模糊搜索"
+        }
+      },
+      "actions": {
+        "upload": "上传文件",
+        "merge": "合并记录",
+        "batchDelete": "批量删除",
+        "batchRestore": "批量恢复",
+        "batchPermanentDelete": "批量永久删除"
+      },
+      "drawer": {
+        "title": "文件详情",
+        "copyUrl": "复制",
+        "copyUrlSuccess": "URL已复制到剪贴板"
+      },
+      "merge": {
+        "title": "合并文件记录",
+        "description": "将一个“源文件记录”合并入一个“目标文件记录”。操作后，源记录将被删除。",
+        "source": "源记录 (将被合并并删除)",
+        "target": "目标记录 (将保留)",
+        "success": "文件记录合并成功"
+      },
+      "messages": {
+        "softDeleteConfirmTitle": "移入回收站",
+        "softDeleteConfirmContent": "确定要删除文件记录 \"{filename}\" 吗？",
+        "softDeleteSuccess": "已移入回收站",
+        "permanentDeleteConfirmTitle": "警告：永久删除",
+        "permanentDeleteConfirmContent": "即将彻底删除文件 \"{filename}\" 的记录及其物理文件。此操作不可恢复！",
+        "permanentDeleteSuccess": "已永久删除",
+        "restoreConfirmTitle": "恢复文件记录",
+        "restoreConfirmContent": "确定要恢复选中的 {count} 条记录吗？",
+        "restoreSuccess": "恢复成功",
+        "notFound": "文件记录不存在或已被删除"
+      },
+      "status": {
+        "active": "活跃",
+        "deleted": "已删除",
+        "associated": "已关联",
+        "unassociated": "未关联"
+      }
     }
   },
   "permission": {

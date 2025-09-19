@@ -72,6 +72,24 @@ const contentRoutes: RouteRecordRaw[] = [
           icon: 'ion:pricetags-outline',
         },
       },
+      {
+        name: 'FileManagement',
+        path: '/content/files', // API 路径通常用复数形式，这里保持 files
+
+        // [修正] 确认组件的实际存放路径
+        component: () => import('#/views/content/files/index.vue'),
+
+        meta: {
+          // [修正] 使用我们刚刚在 i18n 文件中定义的 key
+          title: $t('page.content.file.title'),
+
+          // [修正] 为文件管理选择一个更合适的图标
+          icon: 'ion:images-outline',
+
+          // 为未来权限系统预留
+          // authority: ['file:view'],
+        },
+      },
     ],
   },
 ];

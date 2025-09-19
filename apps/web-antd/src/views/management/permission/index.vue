@@ -1,122 +1,84 @@
 <script lang="ts" setup>
 import { onMounted, h } from 'vue';
 import {
-  Button,
-  Card,
-  Form,
-  FormItem,
-  Input,
-  Select,
-  Table,
-  Tag,
-  Space,
-  Popconfirm,
-  Tooltip,
+  Button, Card, Form, FormItem, Input, Select, Table, Tag, Space, Popconfirm, Tooltip,
+  RadioGroup, RadioButton,
 } from 'ant-design-vue';
 import { SyncOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue';
 import type { TableColumnType } from 'ant-design-vue';
-
 import { usePermissionManagement } from './usePermissionManagement';
 import type { PermissionRead } from './types';
-import { $t } from '#/locales';
+import { useAuthStore } from '#/store';
 
+const authStore = useAuthStore();
 const {
-  loading,
-  tableData,
-  searchParams,
-  pagination,
-  permissionGroupOptions, // <--- 在这里接收
-  handleTableChange,
-  handleSearch,
-  handleReset,
-  handleSyncPermissions,
-  fetchData,
+  loading, syncLoading, tableData, searchParams, pagination,
+  selectedRowKeys, hasSelected, rowSelection,
+  permissionGroupOptions,
+  handleTableChange, handleSearch, handleReset,
+  handleSyncPermissions, handlePermanentDelete,
+  refreshData,
 } = usePermissionManagement();
 
-// 定义表格列
 const columns: TableColumnType<PermissionRead>[] = [
+  { title: '所属模块', dataIndex: 'group', key: 'group', width: 180, sorter: true },
+  { title: '权限名称', dataIndex: 'name', key: 'name', width: 200, sorter: true },
+  { title: '权限代码', dataIndex: 'code', key: 'code', sorter: true, customRender: ({ text }) => h(Tag, { color: 'geekblue' }, () => text) },
   {
-    title: $t('page.permission.group'),
-    dataIndex: 'group',
-    key: 'group',
-    width: 180,
-    sorter: true,
+    title: '状态', key: 'status', width: 100, align: 'center',
+    customRender: ({ record }) => {
+      // is_deleted 在权限模块的业务含义是“已禁用”
+      const color = record.is_deleted ? 'gray' : 'success';
+      const text = record.is_deleted ? '已禁用' : '活跃';
+      return h(Tag, { color }, () => text);
+    },
   },
-  {
-    title: $t('page.permission.name'),
-    dataIndex: 'name',
-    key: 'name',
-    width: 200,
-    sorter: true,
-  },
-  {
-    title: $t('page.permission.code'),
-    dataIndex: 'code',
-    key: 'code',
-    width: 250,
-    sorter: true,
-    customRender: ({ text }) => h(Tag, { color: 'geekblue' }, () => text),
-  },
-  {
-    title: $t('page.permission.description'),
-    dataIndex: 'description',
-    key: 'description',
-    ellipsis: true,
-  },
+  { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
 ];
-
-// 组件挂载时加载初始数据
-onMounted(() => {
-  fetchData();
-});
 </script>
 
 <template>
   <div class="p-4">
     <Card :bordered="false" class="mb-4">
       <Form :model="searchParams" layout="inline" class="flex flex-wrap gap-x-4">
-        <FormItem :label="$t('page.permission.group')">
+        <FormItem v-if="authStore.isSuperuser" label="查看模式">
+          <RadioGroup v-model:value="searchParams.view_mode" button-style="solid" @change="handleSearch">
+            <RadioButton value="active">活跃权限</RadioButton>
+            <RadioButton value="all">全部</RadioButton>
+            <RadioButton value="deleted">回收站</RadioButton>
+          </RadioGroup>
+        </FormItem>
+        <FormItem label="所属模块">
           <Select
             v-model:value="searchParams.group"
-            :options="permissionGroupOptions" placeholder="请选择所属模块进行过滤"
+            :options="permissionGroupOptions"
+            placeholder="按模块筛选"
             allow-clear
             style="width: 200px"
           />
         </FormItem>
-        <FormItem :label="$t('common.search')">
-          <Input
-            v-model:value="searchParams.search"
-            :placeholder="`${$t('page.permission.name')}/${$t('page.permission.code')}`"
-            allow-clear
-            @pressEnter="handleSearch"
-          />
+        <FormItem label="搜索">
+          <Input v-model:value="searchParams.search" placeholder="搜索名称/代码" allow-clear @pressEnter="handleSearch" />
         </FormItem>
-        <FormItem>
-          <Space>
-            <Button type="primary" :loading="loading" @click="handleSearch">{{ $t('common.query') }}</Button>
-            <Button @click="handleReset">{{ $t('common.reset') }}</Button>
-          </Space>
-        </FormItem>
+        <FormItem><Space>
+          <Button type="primary" :loading="loading" @click="handleSearch">查询</Button>
+          <Button @click="handleReset">重置</Button>
+        </Space></FormItem>
       </Form>
     </Card>
 
     <Card :bordered="false">
       <div class="mb-4 flex justify-between items-center">
         <Space>
-          <Popconfirm
-            :title="$t('page.permission.syncConfirmationTitle')"
-            :ok-text="$t('common.confirm')"
-            :cancel-text="$t('common.cancel')"
-            @confirm="handleSyncPermissions"
-          >
-            <template #icon><QuestionCircleOutlined style="color: red" /></template>
-            <Button type="primary">{{ $t('page.permission.syncPermissions') }}</Button>
+          <Popconfirm title="确定要从代码源同步所有权限吗？" @confirm="handleSyncPermissions">
+            <Button type="primary" :loading="syncLoading">同步权限</Button>
           </Popconfirm>
-          <div class="text-xs text-gray-400">{{ $t('page.permission.syncConfirmationDesc') }}</div>
+          <Popconfirm title="确定要永久删除选中的已禁用权限吗？" @confirm="handlePermanentDelete">
+            <Button type="danger" ghost :disabled="!hasSelected || searchParams.view_mode !== 'all'">清理权限</Button>
+          </Popconfirm>
+          <div class="text-xs text-gray-400">权限的增、改、删由代码配置驱动</div>
         </Space>
-        <Tooltip :title="$t('common.refresh')">
-          <Button shape="circle" :icon="h(SyncOutlined)" :loading="loading" @click="fetchData" />
-        </Tooltip>
+        <Tooltip title="刷新"><Button shape="circle" :icon="h(SyncOutlined)" :loading="loading" @click="refreshData" /></Tooltip>
       </div>
 
       <Table
@@ -124,12 +86,27 @@ onMounted(() => {
         :data-source="tableData.items"
         :pagination="pagination"
         :loading="loading"
+        :row-selection="rowSelection"
         row-key="id"
         bordered
         size="small"
         :scroll="{ y: 'calc(100vh - 420px)' }"
         @change="handleTableChange"
-      />
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'action'">
+            <Popconfirm
+              v-if="record.is_deleted"
+              title="确定要永久删除这个权限吗？"
+              ok-text="确定"
+              cancel-text="取消"
+              @confirm="handlePermanentDelete({ permission_ids: [record.id] })"
+            >
+              <Button type="link" danger size="small">永久删除</Button>
+            </Popconfirm>
+          </template>
+        </template>
+      </Table>
     </Card>
   </div>
 </template>

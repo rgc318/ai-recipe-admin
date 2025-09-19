@@ -3,8 +3,8 @@
     "login": "Login",
     "register": "Register",
     "codeLogin": "Code Login",
-    "qrcodeLogin": "Qr Code Login",
-    "forgetPassword": "Forget Password"
+    "qrcodeLogin": "QR Code Login",
+    "forgetPassword": "Forgot Password"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -12,13 +12,13 @@
     "workspace": "Workspace"
   },
   "management": {
-    "title": "System Management",
+    "title": "Management",
     "user": "User Management",
     "role": "Role Management",
     "permission": "Permission Management"
   },
   "content": {
-    "title": "Content Management",
+    "title": "Content",
     "recipe": {
       "title": "Recipe Management",
       "editorTitle": "Recipe Editor",
@@ -37,7 +37,7 @@
         "category": "Category",
         "tags": "Tags",
         "placeholder": {
-          "title": "Search title...",
+          "title": "Search by title...",
           "status": "Select status",
           "category": "Select category",
           "tags": "Select tags"
@@ -71,18 +71,80 @@
       },
       "merge": {
         "title": "Merge Tags",
-        "description": "Merge one or more 'source tags' into a single 'target tag'. Source tags will be deleted, and their recipes will be transferred to the target tag.",
+        "description": "Merge one or more 'source tags' into a 'target tag'. After the operation, source tags will be deleted, and all their associated recipes will be transferred to the target tag.",
         "source": "Source Tags (will be merged and deleted)",
         "target": "Target Tag (will be kept)",
         "success": "Tags merged successfully"
       },
       "batchDelete": {
-        "confirmTitle": "Confirm Batch Deletion?",
-        "confirmContent": "About to delete {count} tags. This action cannot be undone."
+        "confirmTitle": "Confirm Batch Delete?",
+        "confirmContent": "{count} tags will be deleted. This action is irreversible."
       }
     },
     "comment": {
       "title": "Comment Management"
+    },
+    "file": {
+      "title": "File Management",
+      "table": {
+        "preview": "Preview",
+        "filename": "Original Filename",
+        "info": "File Info",
+        "size": "Size",
+        "type": "Type",
+        "profile": "Storage Profile",
+        "status": "Status",
+        "uploader": "Uploader",
+        "createdAt": "Upload Time",
+        "actions": "Actions"
+      },
+      "filter": {
+        "viewMode": "View Mode",
+        "active": "Active Files",
+        "all": "All Files",
+        "deleted": "Recycle Bin",
+        "filenameSearch": "Filename Search",
+        "placeholder": {
+          "filename": "Search by original filename..."
+        }
+      },
+      "actions": {
+        "upload": "Upload File",
+        "merge": "Merge Records",
+        "batchDelete": "Batch Delete",
+        "batchRestore": "Batch Restore",
+        "batchPermanentDelete": "Batch Permanent Delete"
+      },
+      "drawer": {
+        "title": "File Details",
+        "copyUrl": "Copy",
+        "copyUrlSuccess": "URL copied to clipboard"
+      },
+      "merge": {
+        "title": "Merge File Records",
+        "description": "Merge a 'source file record' into a 'target file record'. After the operation, the source record will be deleted.",
+        "source": "Source Record (will be merged and deleted)",
+        "target": "Target Record (will be kept)",
+        "success": "File records merged successfully"
+      },
+      "messages": {
+        "softDeleteConfirmTitle": "Move to Recycle Bin",
+        "softDeleteConfirmContent": "Are you sure you want to delete the file record for \"{filename}\"?",
+        "softDeleteSuccess": "Moved to Recycle Bin",
+        "permanentDeleteConfirmTitle": "Warning: Permanent Delete",
+        "permanentDeleteConfirmContent": "This will permanently delete the record for \"{filename}\" and its physical file. This action is irreversible!",
+        "permanentDeleteSuccess": "Permanently deleted",
+        "restoreConfirmTitle": "Restore File Record",
+        "restoreConfirmContent": "Are you sure you want to restore the selected {count} record(s)?",
+        "restoreSuccess": "Restored successfully",
+        "notFound": "File record not found or has been deleted"
+      },
+      "status": {
+        "active": "Active",
+        "deleted": "Deleted",
+        "associated": "Associated",
+        "unassociated": "Unassociated"
+      }
     }
   },
   "permission": {
@@ -92,23 +154,23 @@
     "description": "Description",
     "syncPermissions": "Sync Permissions",
     "syncConfirmationTitle": "Confirm Sync Permissions?",
-    "syncConfirmationDesc": "This will bulk-create non-existent permissions based on the configuration file. This is a safe operation.",
+    "syncConfirmationDesc": "This will batch create non-existent permissions based on the configuration file. This is a safe operation.",
     "syncSuccess": "Permissions synced successfully!",
     "syncFailed": "Permission sync failed"
   },
   "profile": {
-    "title": "Profile Center",
+    "title": "Profile",
     "tabs": {
       "basicInfo": "Basic Info",
       "securitySettings": "Security Settings"
     },
     "basic": {
-      "title": "Basic Information",
+      "title": "Basic Info",
       "username": "Username",
       "fullName": "Full Name",
       "email": "Email",
       "uploadAvatar": "My Avatar",
-      "uploadTip": "Supports JPG, PNG format, size no more than 2MB",
+      "uploadTip": "Supports JPG, PNG formats, up to 2MB.",
       "saveButton": "Save Changes",
       "updateSuccess": "Profile updated successfully!"
     },
@@ -116,9 +178,9 @@
       "title": "Security Settings",
       "currentPassword": "Current Password",
       "newPassword": "New Password",
-      "confirmPassword": "Confirm New Password",
+      "confirmPassword": "Confirm Password",
       "changePasswordButton": "Change Password",
-      "updateSuccess": "Password changed successfully!"
+      "updateSuccess": "Password updated successfully!"
     }
   }
 }

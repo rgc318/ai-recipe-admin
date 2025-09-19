@@ -17,7 +17,7 @@ import { useUploader } from '#/hooks/web/useUploader';
 // 1. 【核心】导入正确的类型
 import type { RecipeStepInput} from '../types';
 import type {FileRecordRead} from "#/views/content/files/types";
-import {generatePresignedUploadPolicy, registerFile} from "#/api/management/files/file";
+import {generatePresignedUploadPolicy, registerFile, uploadToCloud} from "#/api/content/file";
 import axios from "axios";
 
 
@@ -65,14 +65,11 @@ watch(internalSteps, (steps) => {
           const policy = policyRes;
 
           // 步骤 B: 物理上传
-          const formData = new FormData();
-          Object.keys(policy.fields).forEach((key) => formData.append(key, policy.fields[key]));
-          formData.append('file', file);
-          await axios.post(policy.url, formData, {
-            onUploadProgress: (event) => {
-              if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
-            },
-          });
+          const etag = await uploadToCloud(
+            policy,
+            file,
+            (percent) => onProgress({ percent })
+          );
 
           // 步骤 C: 登记文件
           const registerRes = await registerFile({
@@ -81,6 +78,7 @@ watch(internalSteps, (steps) => {
             content_type: file.type,
             file_size: file.size,
             profile_name: 'recipe_images',
+            etag: etag,
           });
 
           // 【关键】调用 onSuccess 将结果传给 Antd Upload 组件
@@ -107,7 +105,7 @@ const beforeUpload = (file: File, step: DraggableStepItem) => {
   const isLt10M = file.size / 1024 / 1024 < 10;
   if (!isJpgOrPng || !isLt10M) {
     message.error('请上传 10MB 以下的 JPG/PNG/WEBP 格式图片!');
-    return false;
+    return Upload.LIST_IGNORE;
   }
 
   // ▼▼▼ 【核心修改】在这里为特定步骤添加数量前置校验 ▼▼▼
@@ -115,7 +113,7 @@ const beforeUpload = (file: File, step: DraggableStepItem) => {
   if (step.images && Array.isArray(step.images) && step.images.length >= MAX_IMAGES_PER_STEP) {
     message.error(`每个步骤最多只能上传 ${MAX_IMAGES_PER_STEP} 张图片`);
     // 返回 false 会立即中断上传流程
-    return false;
+    return Upload.LIST_IGNORE;
   }
 
   return true;

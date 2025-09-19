@@ -5,8 +5,11 @@ import { PlusOutlined, LoadingOutlined, UserOutlined } from '@ant-design/icons-v
 import type {AvatarLinkDTO, UserReadWithRoles} from '#/views/management/user/types';
 import {generateMyAvatarUploadPolicy, linkMyUploadedAvatar} from '#/api/profile/profile';
 // import { registerFile } from '#/api/management/files/file';
-import type {FileRecordRead} from "#/views/content/recipe/types";
-import axios from 'axios';
+// [新增] 导入我们通用的物理上传工具
+import { uploadToCloud } from '#/api/content/file';
+// [新增] 导入类型，确保 payload 结构正确
+import type { RegisterFilePayload } from '#/views/content/files/types';
+
 
 const props = defineProps<{
   profileData: UserReadWithRoles | null;
@@ -56,14 +59,11 @@ const onAvatarUpload = async ({ file, onSuccess, onError, onProgress }) => {
     });
 
     // 步骤 B: 物理上传文件到云 (这部分不变)
-    const formData = new FormData();
-    Object.keys(policy.fields).forEach(key => formData.append(key, policy.fields[key]));
-    formData.append('file', file);
-    await axios.post(policy.url, formData, {
-      onUploadProgress: (event) => {
-        if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
-      },
-    });
+    const etag = await uploadToCloud(
+      policy,
+      file,
+      (percent) => onProgress({ percent })
+    );
 
     // 步骤 C: 关联头像 (这部分不变)
     const avatarDto: AvatarLinkDTO = {
@@ -71,6 +71,7 @@ const onAvatarUpload = async ({ file, onSuccess, onError, onProgress }) => {
       original_filename: file.name,
       content_type: file.type,
       file_size: file.size,
+      etag: etag,
     };
     const updatedUser = await linkMyUploadedAvatar(avatarDto);
 

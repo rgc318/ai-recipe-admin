@@ -10,20 +10,43 @@ export interface PermissionRead {
   name: string; // 权限的显示名称, e.g., "查看用户列表"
   group?: string; // 所属模块/分组, e.g., "用户管理"
   description?: string | null; // 权限的详细描述
+  is_deleted: boolean;
 }
 
 /**
  * @description 调用“同步权限”接口后，后端返回的响应数据模型。
  * 这个接口的字段应该与后端 Pydantic 的 PermissionSyncResponse schema 完全匹配。
  */
-export interface PermissionSyncResponse {
-  total: number; // 本次同步请求中包含的权限总数
-  found: number; // 在数据库中已存在的权限数量
-  created: number; // 本次同步中新创建的权限数量
-  // created_items?: PermissionRead[]; // (可选) 后端可能会返回新创建项的详细列表
-}
+// export interface PermissionSyncResponse {
+//   total: number; // 本次同步请求中包含的权限总数
+//   found: number; // 在数据库中已存在的权限数量
+//   created: number; // 本次同步中新创建的权限数量
+//   // created_items?: PermissionRead[]; // (可选) 后端可能会返回新创建项的详细列表
+// }
 
-export interface PermissionSelector {
+export interface PermissionSelectorRead {
   id: string;
   name: string;
+  group: string;
+}
+
+export interface PermissionSyncResponse {
+  total_in_config: number;
+  created: number;
+  updated: number;
+  disabled: number;
+  enabled: number;
+}
+
+export interface PermissionListParams {
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  search?: string;
+  group?: string;
+  view_mode?: 'active' | 'all' | 'deleted';  // 权限模块通常不需要 'deleted' 视图
+}
+
+export interface BatchPermissionActionPayload {
+  permission_ids: string[];
 }

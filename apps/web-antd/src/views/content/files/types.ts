@@ -1,56 +1,91 @@
-/**
- * @description 用于从API读取的、已登记的文件记录的数据模型。
- * 字段应与后端 Pydantic 的 FileRecordRead schema 完全匹配。
- */
+// /views/content/file/types.ts
+
+// =================================================================
+//                      核心数据模型 (Core Models)
+// =================================================================
+
+/** @description 从API读取的、已登记的文件记录。 */
 export interface FileRecordRead {
-  id: string; // 数据库记录的UUID
-  object_name: string; // 文件在云存储中的唯一路径/键
+  id: string;
+  object_name: string;
   original_filename: string;
   file_size: number;
   content_type: string;
-  uploader_id: string; // 上传者的UUID
-  created_at: string; // ISO 格式的日期字符串
+  uploader_id: string;
+  is_associated: boolean;
+  created_at: string;
   profile_name: string;
   etag?: string | null;
-  url?: string | null; // 动态生成的可访问URL
+  is_deleted: boolean;
+  url?: string | null;
+  uploader?: UploaderInfo | null;
 }
 
-/**
- * @description 请求“预签名上传URL”时，发送给后端的数据模型。
- */
-export interface PresignedUrlPayload {
+/** @description 简化的上传者信息。 */
+export interface UploaderInfo {
+  id: string;
+  nickname: string;
+  avatar?: string | null;
+}
+
+/** @description 对象存储中物理文件的基本信息。 */
+export interface FileInfo {
+  object_name: string;
+  size: number;
+  last_modified: string;
+}
+
+// =================================================================
+//                 API 请求载荷 (Request Payloads)
+// =================================================================
+
+// --- FileRecord (元数据) 管理相关 ---
+
+/** @description 文件管理列表页的筛选查询参数。 */
+export interface FileFilterParams {
+  original_filename?: string;
+  content_type?: string;
+  profile_name?: string;
+  uploader_id?: string;
+  is_associated?: boolean;
+}
+
+/** @description 更新文件记录元数据。 */
+export interface FileRecordUpdatePayload {
+  original_filename?: string | null;
+}
+
+/** @description 批量恢复或永久删除。 */
+export interface BulkActionPayload {
+  record_ids: string[];
+}
+
+/** @description 合并文件记录。 */
+export interface MergeRecordsPayload {
+  source_id: string;
+  target_id: string;
+}
+
+// --- File (物理文件) 管理相关 ---
+
+/** @description 请求“预签名PUT URL”。 */
+export interface PresignedPutUrlPayload {
   profile_name: string;
   original_filename: string;
   path_params?: Record<string, any>;
+  expires_in?: number;
 }
 
-// 【新增】为安全的POST策略请求创建请求体类型
-export interface PresignedPolicyRequest {
-  original_filename: string;
-  content_type: string;
-}
-
-/**
- * @description 后端返回的“预签名上传URL”对象的数据模型。
- */
-export interface PresignedUploadURL {
-  upload_url: string; // 供前端直接上传文件到云存储的URL
-  object_name: string; // 文件上传后在云存储中的唯一路径/键
-  url: string; // 文件上传成功后的最终可访问URL
-}
-
-export interface PresignedUploadPolicy {
-  object_name: string;
-  original_filename: string;
-  content_type: string;
-  file_size: number;
+/** @description 请求“预签名POST策略”。 */
+export interface PresignedPolicyPayload {
   profile_name: string;
-  etag?: string | null;
+  original_filename: string;
+  content_type: string;
+  path_params?: Record<string, any>;
+  expires_in?: number;
 }
 
-/**
- * @description 在文件成功上传到云后，“登记”文件时发送给后端的数据模型。
- */
+/** @description 客户端上传成功后登记文件。 */
 export interface RegisterFilePayload {
   object_name: string;
   original_filename: string;
@@ -60,24 +95,52 @@ export interface RegisterFilePayload {
   etag?: string | null;
 }
 
-
-// ▼▼▼ 【核心新增】为“后台管理”场景补充的类型 ▼▼▼
-
-/**
- * @description 更新文件记录元数据时，发送给API的数据模型。
- * 所有字段都是可选的。
- */
-export interface FileRecordUpdate {
-  original_filename?: string | null;
+/** @description 移动物理文件并更新记录。 */
+export interface MoveFilePayload {
+  profile_name: string;
+  record_id: string;
+  destination_key: string;
 }
 
-/**
- * @description 文件管理列表页，用于构建筛选查询的参数模型。
- */
-export interface FileFilterParams {
-  original_filename?: string;
-  content_type?: string;
-  profile_name?: string;
-  uploader_id?: string;
+/** @description 批量删除物理文件。 */
+export interface DeleteFilesPayload {
+  profile_name: string;
+  object_names: string[];
 }
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+
+// =================================================================
+//                  API 响应类型 (Response Types)
+// =================================================================
+
+/** @description “预签名PUT URL”的响应。 */
+export interface PresignedUploadURL {
+  upload_url: string;
+  object_name: string;
+  url: string;
+}
+
+/** @description “预签名POST策略”的响应。 */
+export interface PresignedUploadPolicy {
+  url: string;
+  fields: Record<string, string>;
+  object_name: string;
+  final_url: string;
+}
+
+/** @description 服务器直传成功后的响应。 */
+export interface UploadResult {
+  record_id: string;
+  object_name: string;
+  url: string;
+  etag?: string | null;
+  file_size: number;
+  content_type: string;
+}
+
+/** @description 存储统计的响应。 */
+export interface StorageUsageStats {
+  group_key?: string | null;
+  total_files: number;
+  total_size_bytes: number;
+}

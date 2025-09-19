@@ -63,3 +63,9 @@ export function getPermissionsForSelector() {
  * 因此不再需要为前端提供手动的 createPermission, updatePermission, deletePermission 等 API 调用。
  * 这使得权限管理更加安全和可控。
  */
+
+export function permanentDeletePermissions(data: BatchPermissionActionPayload) {
+  return requestClient.delete<StandardResponse<{ deleted_count: number }>>(
+    `${API_PREFIX}/permanent`, { data },
+  );
+}

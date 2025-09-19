@@ -24,7 +24,7 @@ import { searchTags } from '#/api/content/tag';
 import type { TagRead, RecipeCreateData } from '../types';
 
 // 【新增】导入你的通用上传API
-import { generatePresignedUploadPolicy, registerFile } from '#/api/management/files/file';
+import { uploadToCloud, generatePresignedUploadPolicy, registerFile } from '#/api/content/file';
 // 【新增】导入 axios 用于物理上传
 import axios from 'axios';
 
@@ -69,7 +69,7 @@ const beforeUpload = (file: File, isCover: boolean = false) => {
   const isLt10M = file.size / 1024 / 1024 < 10;
   if (!isJpgOrPng || !isLt10M) {
     message.error('请上传 10MB 以下的 JPG/PNG/WEBP 格式图片!');
-    return false;
+    return Upload.LIST_IGNORE;
   }
 
   // ▼▼▼ 【核心修改】在这里为画廊图片添加数量前置校验 ▼▼▼
@@ -77,7 +77,7 @@ const beforeUpload = (file: File, isCover: boolean = false) => {
     if (galleryFileList.value.length >= MAX_GALLERY_IMAGES) {
       message.error(`最多只能上传 ${MAX_GALLERY_IMAGES} 张画廊图片`);
       // 返回 false 会立即中断上传流程
-      return false;
+      return Upload.LIST_IGNORE;
     }
   }
 
@@ -89,6 +89,7 @@ const beforeUpload = (file: File, isCover: boolean = false) => {
 
   return true;
 };
+
 
 
 // --- 【核心修改】封面上传逻辑 ---
@@ -123,15 +124,11 @@ const coverCustomRequest = async ({ file, onSuccess, onError, onProgress }: any)
     const policy = policyRes;
 
     // --- 步骤 B: 物理上传文件到云 (通用逻辑) ---
-    const formData = new FormData();
-    Object.keys(policy.fields).forEach((key) => formData.append(key, policy.fields[key]));
-    formData.append('file', file);
-
-    await axios.post(policy.url, formData, {
-      onUploadProgress: (event) => {
-        if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
-      },
-    });
+    const etag = await uploadToCloud(
+      policy,
+      file,
+      (percent) => onProgress({ percent })
+    );
 
     // --- 步骤 C: 根据模式，执行不同的后续操作 ---
     if (props.isCreateMode) {
@@ -143,6 +140,7 @@ const coverCustomRequest = async ({ file, onSuccess, onError, onProgress }: any)
         file_size: file.size,
         // 【注意】这里登记时，可以告诉后端这个文件最终要用于哪个 profile
         profile_name: 'recipe_images',
+        etag: etag, // <-- 传递 ETag
       });
 
 
@@ -162,6 +160,7 @@ const coverCustomRequest = async ({ file, onSuccess, onError, onProgress }: any)
         content_type: file.type,
         file_size: file.size,
         profile_name: 'recipe_images',
+        etag: etag, // <-- 传递 ETag
       });
 
       message.success('封面图更新成功！');
@@ -213,15 +212,11 @@ const galleryCustomRequest = async ({ file, onSuccess, onError, onProgress }: an
     });
     const policy = policyRes;
 
-    const formData = new FormData();
-    Object.keys(policy.fields).forEach((key) => formData.append(key, policy.fields[key]));
-    formData.append('file', file);
-
-    await axios.post(policy.url, formData, {
-      onUploadProgress: (event) => {
-        if (event.total) onProgress({ percent: Math.round((event.loaded * 100) / event.total) });
-      },
-    });
+    const etag = await uploadToCloud(
+      policy,
+      file,
+      (percent) => onProgress({ percent })
+    );
 
     // 【这里的逻辑不同】
     // 对于画廊，我们不需要在 customRequest 内部直接修改 formState。
@@ -233,6 +228,7 @@ const galleryCustomRequest = async ({ file, onSuccess, onError, onProgress }: an
       content_type: file.type,
       file_size: file.size,
       profile_name: 'recipe_images',
+      etag: etag, // <-- 传递 ETag
     });
 
     // 把后端返回的完整文件信息传递给 antd Upload 组件
