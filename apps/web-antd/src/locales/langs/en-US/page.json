@@ -55,6 +55,49 @@
     "unit": {
       "title": "Unit Management"
     },
+    "ingredient": {
+      "title": "Ingredient Management",
+      "table": {
+        "name": "Ingredient Name",
+        "description": "Description",
+        "recipeCount": "Recipe Count",
+        "status": "Status",
+        "createdAt": "Created At",
+        "actions": "Actions"
+      },
+      "filter": {
+        "placeholder": "Search by name..."
+      },
+      "drawer": {
+        "createTitle": "New Ingredient",
+        "updateTitle": "Edit Ingredient",
+        "name": "Ingredient Name",
+        "namePlaceholder": "e.g., Chicken Breast",
+        "pluralName": "Plural Form (Optional)",
+        "pluralNamePlaceholder": "e.g., egg -> eggs",
+        "description": "Description (Optional)",
+        "descriptionPlaceholder": "A brief description of the ingredient"
+      },
+      "merge": {
+        "title": "Merge Ingredients",
+        "description": "Merge one or more 'source ingredients' into a 'target ingredient'. Source ingredients will be deleted and their references in recipes will be transferred to the target.",
+        "source": "Source Ingredients (will be merged and deleted)",
+        "target": "Target Ingredient (will be kept)",
+        "success": "Ingredients merged successfully"
+      },
+      "messages": {
+        "softDeleteConfirmTitle": "Move to Recycle Bin",
+        "softDeleteConfirmContent": "Are you sure you want to delete the ingredient \"{name}\"?",
+        "softDeleteSuccess": "Moved to Recycle Bin",
+        "permanentDeleteConfirmTitle": "Warning: Permanent Delete",
+        "permanentDeleteConfirmContent": "{count} ingredient(s) will be permanently deleted. This action is irreversible!",
+        "permanentDeleteSuccess": "Permanently deleted",
+        "restoreConfirmTitle": "Restore Ingredients",
+        "restoreConfirmContent": "Are you sure you want to restore the selected {count} ingredient(s)?",
+        "restoreSuccess": "Restored successfully",
+        "inUseError": "Cannot delete, this ingredient is being used by {count} active recipe(s)"
+      }
+    },
     "tag": {
       "title": "Tag Management",
       "table": {

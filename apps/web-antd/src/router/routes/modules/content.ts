@@ -62,6 +62,16 @@ const contentRoutes: RouteRecordRaw[] = [
           icon: 'ion:cube-outline', // 为单位换一个更合适的图标
         },
       },
+      {
+        name: 'IngredientManagement',
+        path: '/content/ingredient',
+        component: () => import('#/views/content/ingredient/index.vue'), // 指向我们刚刚创建的 index.vue
+        meta: {
+          title: $t('page.content.ingredient.title'), // "配料管理" (请在语言文件中添加)
+          icon: 'ion:leaf-outline', // 为配料选择一个合适的图标
+          // authority: ['ingredient:view'],
+        },
+      },
       // ▼▼▼ 【新增】为即将开发的标签管理预留位置 ▼▼▼
       {
         name: 'TagManagement',

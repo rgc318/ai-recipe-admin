@@ -258,7 +258,7 @@ const handleIngredientSearch = debounce(async (query: string) => {
   if (!query) { ingredientOptions.value = []; return; }
   ingredientSearching.value = true;
   try {
-    const responseData = await searchIngredients({ name: query });
+    const responseData = await searchIngredients({ search: query });
     // 【核心修改】在这里进行格式转换
     ingredientOptions.value = responseData.items.map(item => ({
       value: item.id,   // 将 id 映射到 value

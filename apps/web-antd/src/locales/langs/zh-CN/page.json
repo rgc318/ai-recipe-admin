@@ -55,6 +55,50 @@
     "unit": {
       "title": "单位管理"
     },
+    "ingredient": {
+      "title": "配料管理",
+      "table": {
+        "name": "配料名称",
+        "description": "描述",
+        "recipeCount": "菜谱引用数",
+        "status": "状态",
+        "createdAt": "创建时间",
+        "actions": "操作"
+      },
+      "filter": {
+        "placeholder": "按配料名称模糊搜索..."
+      },
+      "drawer": {
+        "createTitle": "新增配料",
+        "updateTitle": "编辑配料",
+        "name": "配料名称",
+        "namePlaceholder": "例如：鸡胸肉",
+        "pluralName": "复数形式 (可选)",
+        "pluralNamePlaceholder": "例如：egg -> eggs",
+        "description": "描述 (可选)",
+        "descriptionPlaceholder": "对配料的简单描述"
+      },
+      "merge": {
+        "title": "合并配料",
+        "description": "将一个或多个“源配料”合并入一个“目标配料”。操作后，源配料将被删除，其在菜谱中的引用将全部转移到目标配料下。",
+        "source": "源配料 (将被合并并删除)",
+        "target": "目标配料 (将保留)",
+        "success": "配料合并成功"
+      },
+      "messages": {
+        "softDeleteConfirmTitle": "移入回收站",
+        "softDeleteConfirmContent": "确定要删除配料 \"{name}\" 吗？",
+        "softDeleteSuccess": "已移入回收站",
+        "permanentDeleteConfirmTitle": "警告：永久删除",
+        "permanentDeleteConfirmContent": "即将彻底移除 {count} 个配料。此操作不可恢复！",
+        "permanentDeleteSuccess": "已永久删除",
+        "restoreConfirmTitle": "恢复配料",
+        "restoreConfirmContent": "确定要恢复选中的 {count} 个配料吗？",
+        "restoreSuccess": "恢复成功",
+        "inUseError": "无法删除，该配料正在被 {count} 个活跃菜谱使用"
+      }
+    },
+
     "tag": {
       "title": "标签管理",
       "table": {
