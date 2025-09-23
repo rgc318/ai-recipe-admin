@@ -6,7 +6,6 @@ pipeline {
         docker {
             image 'docker:26-cli'
             args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
-            label 'docker-builder' // 同样使用这个带有 Docker 的静态 Agent 节点
         }
     }
 
