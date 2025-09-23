@@ -11,7 +11,7 @@ WORKDIR /app
 
 # 1. 复制所有构建依赖所需的文件
 # 这样，只要这些文件不改变，Docker 就会使用缓存，无需重新安装 pnpm install
-COPY pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 # 为了让 pnpm workspaces 正确解析依赖关系，我们需要所有子项目的 package.json
 COPY apps/web-antd/package.json ./apps/web-antd/
 # 同样复制所有可能被 web-antd 依赖的 packages
