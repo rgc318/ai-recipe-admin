@@ -6,20 +6,13 @@ WORKDIR /app
 
 RUN npm install -g pnpm
 
-# 关键修改：在 pnpm install 之前，复制所有相关的 package.json 文件和工作区定义文件
-# 这能让 pnpm 完整地理解整个 Monorepo 的依赖结构
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-# 根据您的项目结构，将所有子项目的 package.json 也复制进来
-# 示例：
-COPY apps/web-antd/package.json ./apps/web-antd/
-COPY apps/web-ele/package.json ./apps/web-ele/
-COPY packages/components/package.json ./packages/components/
+# 复制整个项目的所有源代码
+COPY . .
 
 # 在仓库根目录的上下文中，安装所有依赖
 RUN pnpm install
 
-# 复制整个项目的所有源代码
-COPY . .
+
 
 # 关键：在完整的环境中，只构建我们需要的 web-antd 子项目
 RUN pnpm --filter web-antd build
