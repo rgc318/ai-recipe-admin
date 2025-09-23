@@ -3,34 +3,55 @@
 # --- 阶段一：构建环境 (Builder) ---
 FROM node:20-alpine AS builder
 
-# 在这里加上安装 git 的命令
+# 安装 git（如果某些依赖或脚本需要）
 RUN apk add --no-cache git
 
 WORKDIR /app
 
-# 正确的方式：启用 Node.js 内置的 Corepack
+# 启用 corepack，以支持 pnpm
 RUN corepack enable
 
-# 复制整个项目的所有源代码
+# 复制 package 配置 + pnpm workspace 配置，以便依赖安装能缓存
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# 如果有 shared config/internals 等目录也需要早复制，视项目结构而定
+# COPY internal ./internal
+# COPY packages ./packages
+
+# 安装依赖
+RUN pnpm install --frozen-lockfile
+
+# 复制其余源代码
 COPY . .
 
-# 在仓库根目录的上下文中，安装所有依赖
-RUN pnpm install
+# 设置构建时环境变量（根据需要），例如 VITE_BASE、环境生产模式等
+ARG VITE_BASE=/
+ENV VITE_BASE=${VITE_BASE}
+ENV NODE_ENV=production
 
-RUN pnpm turbo build --filter='web-antd...^'
+# 构建 web-antd 应用
+# 前提是 web-antd 的 package.json 的 name 是 web-antd 或者类似名字
+RUN pnpm turbo run build --filter=web-antd...
 
-# 关键：在完整的环境中，只构建我们需要的 web-antd 子项目
-RUN pnpm --filter web-antd build
-
+# 或者，如果你确定子项目有独立 build 脚本，也可以：
+# RUN pnpm --filter web-antd build
 
 # --- 阶段二：生产环境 (Production) ---
-FROM nginx:alpine
+FROM nginx:alpine AS production
 
-# 从构建器阶段，只复制 web-antd 打包好的 dist 目录
+# 如果你想使用 gzip / brotli 压缩，需要 nginx image support 或者自己编译 nginx + 模块
+# 可视情况启用
+
+# 删除默认的 nginx 静态设置（可选）
+# RUN rm /etc/nginx/conf.d/default.conf
+
+# 复制 web-antd 的构建产物
 COPY --from=builder /app/apps/web-antd/dist /usr/share/nginx/html
 
-# 复制 Nginx 配置文件
+# 复制 nginx 配置文件
 COPY apps/web-antd/nginx.conf /etc/nginx/conf.d/default.conf
 
+# 设置静态资源基础路径（如果非根路径部署，需要在 nginx.conf 或 VITE_BASE 配置）
 EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]
