@@ -12,11 +12,13 @@ WORKDIR /app
 RUN corepack enable
 
 # 复制 package 配置 + pnpm workspace 配置，以便依赖安装能缓存
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 
-# 如果有 shared config/internals 等目录也需要早复制，视项目结构而定
-# COPY internal ./internal
-# COPY packages ./packages
+# 3️⃣ 使用 turbo prune 只提取 web-antd 及依赖的 package
+RUN pnpm dlx turbo prune --scope=@vben/web-antd --docker
+
+# 4️⃣ 安装依赖
+WORKDIR /app/out
 
 # 安装依赖
 RUN pnpm install --frozen-lockfile
