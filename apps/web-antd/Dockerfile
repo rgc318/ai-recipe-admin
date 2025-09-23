@@ -45,7 +45,8 @@ ENV NODE_ENV=production
 # 3. 执行我们验证成功的构建命令
 # - 使用 pnpm 来调用项目内的 turbo
 # - 使用 --filter=@vben/web-antd... 来确保只构建目标应用及其内部依赖
-RUN pnpm turbo run build --filter=@vben/web-antd...
+RUN pnpm exec turbo run build --filter=@vben/web-antd...
+
 
 
 # --- 阶段三：生产环境 (Production) ---
