@@ -19,7 +19,7 @@ COPY packages/ /app/packages/
 
 # 2. 启用 corepack 并安装所有依赖
 # 使用 --frozen-lockfile 确保CI环境中使用确切的依赖版本
-RUN npm i -g corepack && corepack enable && pnpm install --frozen-lockfile
+RUN npm i -g corepack && corepack enable && pnpm install
 
 
 # --- 阶段二：构建项目 (Builder) ---
