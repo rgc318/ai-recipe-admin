@@ -4,6 +4,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+RUN npm install -g pnpm
+
 # 关键：首先复制整个工作区依赖所需的文件，以利用 Docker 缓存
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
