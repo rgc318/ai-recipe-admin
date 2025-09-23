@@ -35,6 +35,7 @@ COPY . .
 # 这样做的好处是，当只有源代码变动时，可以利用 'deps' 阶段的缓存，跳过 pnpm install
 COPY --from=deps /app/node_modules ./node_modules
 
+RUN corepack enable
 
 # 设置构建时环境变量
 ARG VITE_BASE=/
