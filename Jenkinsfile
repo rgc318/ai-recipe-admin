@@ -50,6 +50,7 @@ pipeline {
                     // 传输镜像包和 docker-compose.yml
                     sh "scp -o StrictHostKeyChecking=no ./${env.IMAGE_FILENAME} ${env.SERVER_USER}@${env.SERVER_IP}:${env.SERVER_PROJECT_PATH}/${env.IMAGE_FILENAME}"
                     sh "scp -o StrictHostKeyChecking=no ./docker-compose.yml ${env.SERVER_USER}@${env.SERVER_IP}:${env.SERVER_PROJECT_PATH}/docker-compose.yml"
+                    sh "scp -o StrictHostKeyChecking=no ./apps/web-antd/nginx.conf ${env.SERVER_USER}@${env.SERVER_IP}:${env.SERVER_PROJECT_PATH}/nginx.conf"
 
                     // 远程执行部署脚本
                     sh """
