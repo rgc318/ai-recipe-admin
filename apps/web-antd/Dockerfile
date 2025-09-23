@@ -2,7 +2,7 @@
 
 # --- 阶段一：依赖安装 (Dependencies) ---
 # 这个阶段的目标是只做一件事：高效且可缓存地安装所有依赖
-FROM node:20-slim AS deps
+FROM node:20-slim AS builder
 
 # Alpine 镜像非常精简，我们需要手动安装 git，因为某些 Vite 插件需要它
 RUN apt-get update && apt-get install -y git
@@ -11,11 +11,12 @@ WORKDIR /app
 
 # 1. 复制所有构建依赖所需的文件
 # 这样，只要这些文件不改变，Docker 就会使用缓存，无需重新安装 pnpm install
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+#COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 # 为了让 pnpm workspaces 正确解析依赖关系，我们需要所有子项目的 package.json
-COPY apps/web-antd/package.json ./apps/web-antd/
+#COPY apps/web-antd/package.json ./apps/web-antd/
 # 同样复制所有可能被 web-antd 依赖的 packages
-COPY packages/ /app/packages/
+#COPY packages/ /app/packages/
+COPY . .
 
 # 2. 启用 corepack 并安装所有依赖
 # 使用 --frozen-lockfile 确保CI环境中使用确切的依赖版本
@@ -24,18 +25,16 @@ RUN npm i -g corepack && corepack enable && pnpm install
 
 # --- 阶段二：构建项目 (Builder) ---
 # 这个阶段利用上一个阶段已经安装好的依赖来构建应用
-FROM node:20-slim AS builder
+#FROM node:20-slim AS builder
 
-WORKDIR /app
+#WORKDIR /app
 
 # 1. 复制所有源代码
-COPY . .
+#COPY . .
 
 # 2. 从 'deps' 阶段复制已经安装好的 node_modules
 # 这样做的好处是，当只有源代码变动时，可以利用 'deps' 阶段的缓存，跳过 pnpm install
-COPY --from=deps /app/node_modules ./node_modules
-
-RUN corepack enable
+#COPY --from=deps /app/node_modules ./node_modules
 
 # 设置构建时环境变量
 ARG VITE_BASE=/
