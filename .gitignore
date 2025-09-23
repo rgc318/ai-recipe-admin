@@ -24,7 +24,7 @@ package-lock.json
 **/backend-mock/data
 
 # local env files
-.env.local
+.env.*
 .env.*.local
 .eslintcache
 

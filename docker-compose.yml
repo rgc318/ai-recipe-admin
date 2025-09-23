@@ -1,0 +1,24 @@
+# ./ai_recipes_frontend/docker-compose.yml
+# --- 用于生产环境的前端服务独立部署文件 ---
+
+services:
+  frontend:
+    # 镜像名称必须与 Jenkinsfile 中构建的名称完全一致
+    image: rgc318/ai-recipes-frontend-antd:latest
+    container_name: ai-recipes-frontend
+    # 生产环境中，通常由一个主 Nginx 反向代理来监听 80/443 端口，
+    # 并将流量转发到这个容器。所以这里可以不暴露端口。
+    # 如果您想直接访问，可以暴露一个端口，例如 "8080:80"。
+    # ports:
+    #   - "8080:80"
+    networks:
+      - shared_net
+    restart: unless-stopped
+
+# 定义网络
+networks:
+  shared_net:
+    external: true
+    # 确保使用与后端相同的共享网络
+    # docker network create my-shared-network
+    name: my-shared-network
