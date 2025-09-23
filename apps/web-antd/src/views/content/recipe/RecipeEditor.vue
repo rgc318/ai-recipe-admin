@@ -153,7 +153,9 @@ const handleSave = async () => {
     saving.value = false;
   }
 };
-
+const handleFormUpdate = (newValues) => {
+  Object.assign(formState, newValues);
+};
 const handleCancel = () => {
   router.back();
 };
@@ -178,7 +180,8 @@ const handleCancel = () => {
           <TabPane key="basic" tab="基础信息与设置">
             <div class="p-4 max-w-3xl mx-auto">
               <BasicInfoForm
-                v-model="formState"
+                :model-value="formState"
+                @update:model-value="handleFormUpdate"
                 :is-create-mode="isCreateMode"
                 :recipe-id="recipeId"
               />

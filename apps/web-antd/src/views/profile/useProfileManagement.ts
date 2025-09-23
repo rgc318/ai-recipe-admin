@@ -4,11 +4,10 @@ import type {
   UserReadWithRoles,
   UserUpdateProfileData,
   UserChangePasswordData,
-  AvatarLinkDTO
 } from '#/views/management/user/types';
 
 // 使用 # 别名导入 API 函数
-import { updateMyProfile, changeMyPassword, linkMyUploadedAvatar } from '#/api/profile/profile';
+import { updateMyProfile, changeMyPassword } from '#/api/profile/profile';
 import {getUserInfoApi} from "#/api";
 import {useAuthStore} from "#/store";
 
