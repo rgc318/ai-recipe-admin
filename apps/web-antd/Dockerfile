@@ -8,28 +8,15 @@ RUN apk add --no-cache git
 
 WORKDIR /app
 
-# 启用 corepack，以支持 pnpm
-RUN corepack enable \
-    && npm install -g turbo
-
-
-# 复制 package 配置 + pnpm workspace 配置，以便依赖安装能缓存
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-COPY apps/web-antd/package.json ./apps/web-antd/
-# 如果有其他依赖的 package，也要复制它们的 package.json
-COPY packages/*/package.json ./packages/*/
-
-# 3️⃣ 使用 turbo prune 只提取 web-antd 及依赖的 package
-RUN pnpm dlx turbo prune --scope=@vben/web-antd --docker
-
-# 4️⃣ 安装依赖
-WORKDIR /app/out
-
-# 安装依赖
-RUN pnpm install --frozen-lockfile
-
 # 复制其余源代码
 COPY . .
+
+# 启用 corepack，以支持 pnpm
+RUN npm i -g corepack
+RUN pnpm install
+
+
+
 
 # 设置构建时环境变量（根据需要），例如 VITE_BASE、环境生产模式等
 ARG VITE_BASE=/
@@ -38,7 +25,7 @@ ENV NODE_ENV=production
 
 # 构建 web-antd 应用
 # 前提是 web-antd 的 package.json 的 name 是 web-antd 或者类似名字
-RUN pnpm turbo run build --filter=@vben/web-antd...
+RUN pnpm build
 
 
 # 或者，如果你确定子项目有独立 build 脚本，也可以：
