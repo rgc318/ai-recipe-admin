@@ -27,8 +27,8 @@ export default defineConfig(async ({ mode }) => {
             // mock代理目标地址
             // target: 'http://localhost:5320/api',
             // target: 'http://localhost:8000/api/v1',
-            // target: 'http://192.168.31.229:8000/api/v1',
-            target: env.VITE_API_BASE_URL,
+            target: 'http://192.168.31.229:8000/api/v1',
+            // target: env.VITE_API_BASE_URL,
             ws: true,
           },
         },
