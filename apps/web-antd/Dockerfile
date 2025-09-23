@@ -10,7 +10,7 @@ WORKDIR /app
 
 # 启用 corepack，以支持 pnpm
 RUN corepack enable \
-    && corepack prepare turbo@latest --activate
+    && npm install -g turbo
 
 
 # 复制 package 配置 + pnpm workspace 配置，以便依赖安装能缓存
