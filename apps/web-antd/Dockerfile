@@ -13,6 +13,9 @@ RUN corepack enable
 
 # 复制 package 配置 + pnpm workspace 配置，以便依赖安装能缓存
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/web-antd/package.json ./apps/web-antd/
+# 如果有其他依赖的 package，也要复制它们的 package.json
+COPY packages/*/package.json ./packages/*/
 
 # 3️⃣ 使用 turbo prune 只提取 web-antd 及依赖的 package
 RUN pnpm dlx turbo prune --scope=@vben/web-antd --docker
