@@ -4,7 +4,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN npm install -g pnpm
+# 正确的方式：启用 Node.js 内置的 Corepack
+RUN corepack enable
 
 # 复制整个项目的所有源代码
 COPY . .
