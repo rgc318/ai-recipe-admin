@@ -27,7 +27,8 @@ ENV NODE_ENV=production
 RUN pnpm -r --filter=./packages build
 
 # 前提是 web-antd 的 package.json 的 name 是 web-antd 或者类似名字
-RUN pnpm --filter web-antd build
+RUN pnpm --filter web-antd... build
+
 
 
 
