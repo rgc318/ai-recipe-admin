@@ -2,6 +2,10 @@
 
 # --- 阶段一：构建环境 (Builder) ---
 FROM node:20-alpine AS builder
+
+# 在这里加上安装 git 的命令
+RUN apk add --no-cache git
+
 WORKDIR /app
 
 # 正确的方式：启用 Node.js 内置的 Corepack
@@ -13,7 +17,7 @@ COPY . .
 # 在仓库根目录的上下文中，安装所有依赖
 RUN pnpm install
 
-
+RUN pnpm turbo build --filter='web-antd...^'
 
 # 关键：在完整的环境中，只构建我们需要的 web-antd 子项目
 RUN pnpm --filter web-antd build
