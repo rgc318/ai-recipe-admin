@@ -5,7 +5,7 @@
 FROM node:20-slim AS deps
 
 # Alpine 镜像非常精简，我们需要手动安装 git，因为某些 Vite 插件需要它
-RUN apk add --no-cache git
+RUN apt-get update && apt-get install -y git
 
 WORKDIR /app
 
