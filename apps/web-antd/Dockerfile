@@ -25,7 +25,8 @@ ENV NODE_ENV=production
 
 # 构建 web-antd 应用
 # 前提是 web-antd 的 package.json 的 name 是 web-antd 或者类似名字
-RUN pnpm build
+RUN pnpm --filter web-antd build
+
 
 
 # 或者，如果你确定子项目有独立 build 脚本，也可以：
