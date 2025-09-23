@@ -24,6 +24,8 @@ ENV VITE_BASE=${VITE_BASE}
 ENV NODE_ENV=production
 
 # 构建 web-antd 应用
+RUN pnpm --filter @vben-core/design build
+
 # 前提是 web-antd 的 package.json 的 name 是 web-antd 或者类似名字
 RUN pnpm --filter web-antd build
 
