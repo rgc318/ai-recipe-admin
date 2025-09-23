@@ -1,48 +1,47 @@
 # ./apps/web-antd/Dockerfile
 
-# --- 阶段一：构建环境 (Builder) ---
-FROM node:20-alpine AS builder
-
-# 安装 git（如果某些依赖或脚本需要）
-RUN apk add --no-cache git
+# --- 阶段一：依赖安装 (Dependencies) ---
+# 单独创建一个阶段来处理依赖，以便更好地利用缓存
+FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-# 复制其余源代码
+# 1. 只复制构建依赖所需的文件
+# 这样，只要这些文件不改变，Docker 就会使用缓存，无需重新安装
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# 如果有其他根目录的配置文件，也一并复制，例如：
+# COPY turbo.json tsconfig.json ./
+
+# 2. 启用 corepack 并安装所有依赖
+# 使用 --frozen-lockfile 确保CI环境中使用确切的依赖版本
+RUN npm i -g corepack && pnpm install --frozen-lockfile
+
+
+# --- 阶段二：构建项目 (Builder) ---
+# 这个阶段利用上一个阶段已经安装好的依赖
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# 1. 从 'deps' 阶段复制已经安装好的 node_modules
+COPY --from=deps /app/node_modules ./node_modules
+# 2. 复制所有源代码
+# 因为依赖已经安装好了，代码的变动不会影响到依赖缓存层
 COPY . .
 
-# 启用 corepack，以支持 pnpm
-RUN npm i -g corepack
-RUN CI=true pnpm install
 
-
-
-
-# 设置构建时环境变量（根据需要），例如 VITE_BASE、环境生产模式等
+# 设置构建时环境变量
 ARG VITE_BASE=/
 ENV VITE_BASE=${VITE_BASE}
 ENV NODE_ENV=production
 
-# 构建 web-antd 应用
-RUN pnpm -r --filter "packages/@core/**" build
-
-# 前提是 web-antd 的 package.json 的 name 是 web-antd 或者类似名字
-RUN pnpm --filter web-antd... build
+# 3. 只需要执行一次构建命令
+# pnpm 会自动构建目标应用(web-antd)及其所有内部依赖
+RUN pnpm --filter web-antd build
 
 
-
-
-# 或者，如果你确定子项目有独立 build 脚本，也可以：
-# RUN pnpm --filter web-antd build
-
-# --- 阶段二：生产环境 (Production) ---
+# --- 阶段三：生产环境 (Production) ---
 FROM nginx:alpine AS production
-
-# 如果你想使用 gzip / brotli 压缩，需要 nginx image support 或者自己编译 nginx + 模块
-# 可视情况启用
-
-# 删除默认的 nginx 静态设置（可选）
-# RUN rm /etc/nginx/conf.d/default.conf
 
 # 复制 web-antd 的构建产物
 COPY --from=builder /app/apps/web-antd/dist /usr/share/nginx/html
@@ -50,7 +49,7 @@ COPY --from=builder /app/apps/web-antd/dist /usr/share/nginx/html
 # 复制 nginx 配置文件
 COPY apps/web-antd/nginx.conf /etc/nginx/conf.d/default.conf
 
-# 设置静态资源基础路径（如果非根路径部署，需要在 nginx.conf 或 VITE_BASE 配置）
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
+
