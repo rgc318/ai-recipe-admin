@@ -2,7 +2,7 @@
 
 # --- 阶段一：依赖安装 (Dependencies) ---
 # 这个阶段的目标是只做一件事：高效且可缓存地安装所有依赖
-FROM node:20-alpine AS deps
+FROM node:20-slim AS deps
 
 # Alpine 镜像非常精简，我们需要手动安装 git，因为某些 Vite 插件需要它
 RUN apk add --no-cache git
@@ -24,7 +24,7 @@ RUN npm i -g corepack && corepack enable && pnpm install
 
 # --- 阶段二：构建项目 (Builder) ---
 # 这个阶段利用上一个阶段已经安装好的依赖来构建应用
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -45,7 +45,7 @@ ENV NODE_ENV=production
 # 3. 执行我们验证成功的构建命令
 # - 使用 pnpm 来调用项目内的 turbo
 # - 使用 --filter=@vben/web-antd... 来确保只构建目标应用及其内部依赖
-RUN pnpm exec turbo run build --filter=@vben/web-antd...
+RUN pnpm turbo run build --filter=@vben/web-antd...
 
 
 # --- 阶段三：生产环境 (Production) ---
