@@ -13,7 +13,7 @@ COPY . .
 
 # 启用 corepack，以支持 pnpm
 RUN npm i -g corepack
-RUN pnpm install
+RUN CI=true pnpm install
 
 
 
@@ -24,7 +24,7 @@ ENV VITE_BASE=${VITE_BASE}
 ENV NODE_ENV=production
 
 # 构建 web-antd 应用
-#RUN pnpm -r --filter=./packages build
+RUN pnpm -r --filter "packages/@core/**" build
 
 # 前提是 web-antd 的 package.json 的 name 是 web-antd 或者类似名字
 RUN pnpm --filter web-antd... build
