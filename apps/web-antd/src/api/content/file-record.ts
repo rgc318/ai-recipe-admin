@@ -8,7 +8,7 @@ import type {
   FileFilterParams,
   BulkActionPayload,
   MergeRecordsPayload,
-  StorageUsageStats,
+  StorageUsageStats, FileDeleteCheckResponse,
 } from '#/views/content/files/types'; // [修正] 从我们完善后的 types 文件导入
 
 // [修正] 使用与后端 Router 一致的前缀
@@ -89,9 +89,19 @@ export function getStorageStats(params?: { group_by: string }) {
  * @description 【管理员】批量软删除文件记录 (移入回收站)
  * @param payload - 包含 record_ids 列表的请求体
  */
-export function batchSoftDeleteFileRecords(payload: BulkActionPayload) {
-  // 假设后端提供了一个 DELETE /file-records/bulk/soft 接口
-  return requestClient.delete<StandardResponse<{ deleted_count: number }>>(`${API_PREFIX}/bulk/soft`, { data: payload });
+export function batchSoftDeleteFileRecords(payload: BulkActionPayload, force: boolean = false) {
+  // requestClient 可能是您的 axios 实例
+  return requestClient.delete<StandardResponse<FileDeleteCheckResponse>>(
+    `${API_PREFIX}/bulk/soft`,
+    {
+      // `params` 对象中的内容会被序列化为 URL 查询参数
+      // 例如: /bulk/soft?force=true
+      params: { force },
+
+      // `data` 对象的内容会成为请求体 (Request Body)
+      data: payload,
+    }
+  );
 }
 
 /**

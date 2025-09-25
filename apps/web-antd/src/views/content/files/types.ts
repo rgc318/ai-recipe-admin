@@ -58,6 +58,7 @@ export interface FileRecordUpdatePayload {
 /** @description 批量恢复或永久删除。 */
 export interface BulkActionPayload {
   record_ids: string[];
+  force: boolean;
 }
 
 /** @description 合并文件记录。 */
@@ -143,4 +144,16 @@ export interface StorageUsageStats {
   group_key?: string | null;
   total_files: number;
   total_size_bytes: number;
+}
+
+
+
+/** @description 文件删除预检的API响应。 */
+export interface FileDeleteCheckResponse {
+  status: 'success' | 'warning' | 'error';
+  message: string;
+  needs_confirmation: boolean;
+  in_use_files?: string[] | null;
+  safe_to_delete_count: number;
+  in_use_count: number;
 }

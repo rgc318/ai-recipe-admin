@@ -5,7 +5,7 @@ import { message, Modal } from 'ant-design-vue';
 import { QuestionCircleOutlined } from '@ant-design/icons-vue';
 import type { TableProps } from 'ant-design-vue';
 import type { PageResponse } from '#/api/types';
-import type { FileRecordRead } from './types';
+import type { FileRecordRead, FileDeleteCheckResponse } from './types';
 
 // 导入我们刚刚创建的 API 函数
 import {
@@ -109,38 +109,75 @@ export function useFileManagement() {
     handleSearch();
   };
 
+  // --- 辅助函数，用于显示确认对话框 ---
+  const showConfirmationModal = (response: FileDeleteCheckResponse, ids: string[]) => {
+    Modal.confirm({
+      title: '警告：文件正在被使用',
+      icon: h(QuestionCircleOutlined, { style: { color: 'orange' } }),
+      content: h('div', {}, [
+        h('p', response.message),
+        h('p', '以下文件正在被其他模块引用：'),
+        h('ul', { style: { paddingLeft: '20px', maxHeight: '150px', overflowY: 'auto' } },
+          response.in_use_files?.map(file => h('li', file))
+        ),
+        h('p', { style: { marginTop: '10px', fontWeight: 'bold' } }, '如果继续，这些地方的图片或文件链接将会失效。您确定要继续吗？'),
+      ]),
+      okText: '强制删除',
+      okType: 'danger',
+      async onOk() {
+        // 用户确认后，发送 force=true 的请求
+        const finalResponse = await batchSoftDeleteFileRecords({ record_ids: ids }, true);
+        message.success(finalResponse.message);
+        fetchData();
+      },
+    });
+  };
   // =================================================================
   //                    生命周期操作 (增删改查)
   // =================================================================
 
   // --- 软删除 ---
-  const handleSoftDelete = (record: FileRecordRead) => {
-    Modal.confirm({
-      title: '移入回收站',
-      icon: h(QuestionCircleOutlined),
-      content: `确定要删除文件记录 "${record.original_filename}" 吗？`,
-      async onOk() {
-        await softDeleteFileRecord(record.id);
-        message.success('已移入回收站');
+  const handleSoftDelete = async (record: FileRecordRead) => {
+    loading.value = true;
+    try {
+      // 直接调用批量接口，传入单个ID
+      const response = await batchSoftDeleteFileRecords({ record_ids: [record.id] }, false);
+
+      if (response.status === 'success') {
+        message.success(response.message);
         fetchData();
-      },
-    });
+      } else if (response.status === 'warning' && response.needs_confirmation) {
+        showConfirmationModal(response, [record.id]);
+      }
+    } finally {
+      loading.value = false;
+    }
   };
 
   // --- 批量软删除 ---
-  const handleBatchSoftDelete = () => {
+  const handleBatchSoftDelete = async () => {
     if (!hasSelected.value) return;
-    Modal.confirm({
-      title: '批量移入回收站',
-      icon: h(QuestionCircleOutlined),
-      content: `确定要删除选中的 ${selectedRowKeys.value.length} 条文件记录吗？`,
-      async onOk() {
-        // [修正] - 调用我们最终实现的批量软删除API
-        await batchSoftDeleteFileRecords({ record_ids: selectedRowKeys.value });
-        message.success('批量删除成功');
+    loading.value = true;
+    try {
+      const ids = selectedRowKeys.value;
+      // 1. 发送预检请求 (force=false)
+      const response = await batchSoftDeleteFileRecords({ record_ids: ids }, false);
+
+      // 2. 根据响应进行判断
+      if (response.status === 'success') {
+        // 如果所有文件都可安全删除，后端直接删除并返回成功
+        message.success(response.message);
         fetchData();
-      },
-    });
+      } else if (response.status === 'warning' && response.needs_confirmation) {
+        // 如果有文件被使用，弹出二次确认框
+        showConfirmationModal(response, ids);
+      } else {
+        // 处理其他可能的错误情况
+        message.error(response.message || '发生未知错误');
+      }
+    } finally {
+      loading.value = false;
+    }
   };
 
   // --- 恢复 ---
